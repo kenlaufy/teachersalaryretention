@@ -1,0 +1,2310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Salary and Retention</title>
+<meta name="description" content="Interactive view of average teacher salary (2023–24) and teacher retention (DESE 2025 report) across 393 Massachusetts school districts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Public+Sans:ital,wght@0,400..700;1,400&display=swap">
+<style>
+  /* Layout: a navy report masthead (the R charts' title ink) carries the question, the answer and the key figures;
+     three numbered figure panels follow; notes, checks and source sit directly on the page. */
+  :root {
+    color-scheme: light;
+    /* Palette */
+    --page: #eef2f3;
+    --panel: #ffffff;
+    --panel-2: #f4f7f8;
+    --surface: #ffffff;
+    --ink: #183b4e;
+    --text: #1d2a31;
+    --text-2: #4f6069;
+    --muted: #5f6d75;
+    --grid: #e6ebed;
+    --axis: #c7d0d4;
+    --border: rgba(24, 59, 78, 0.11);
+    --control: #ffffff;
+    --control-hover: #eef3f5;
+    --focus: #256abf;
+    --shadow: 0 1px 2px rgba(24, 59, 78, 0.05), 0 12px 32px -14px rgba(24, 59, 78, 0.16);
+    /* Masthead band */
+    --band: #183b4e;
+    --band-fg: #ffffff;
+    --band-2: #c3d6df;
+    --band-line: rgba(255, 255, 255, 0.18);
+    --band-chip: rgba(255, 255, 255, 0.08);
+    --band-ok: #8fe0ad;
+    --band-warn: #ffb4ab;
+    /* Teacher FTE quartiles: one-hue ordinal ramp, validated (--ordinal, light, on #ffffff).
+       Smallest districts get the darkest step so tiny bubbles stay visible; the largest recede. */
+    --fte-1: #104281;
+    --fte-2: #256abf;
+    --fte-3: #5598e7;
+    --fte-4: #86b6ef;
+    --fit: #d55e00;          /* linear fit, from the R chart (3.9:1 on white) */
+    --box-fill: rgba(24, 59, 78, 0.06);
+    --box-stroke: #52636d;
+    --dot: #52636d;
+    /* Salary quartiles (cumulative chart): one-hue teal ordinal ramp, Q1 light -> Q4 dark,
+       validated (--ordinal, light, on #ffffff); every step >= 3:1. */
+    --sal-1: #05a388;
+    --sal-2: #09816b;
+    --sal-3: #096150;
+    --sal-4: #004336;
+    --ok: #0b7a3b;
+    --ok-bg: rgba(11, 122, 59, 0.12);
+    --warn: #b3261e;
+    --warn-bg: rgba(179, 38, 30, 0.12);
+    /* Type */
+    --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0e1417; --panel: #171d20; --panel-2: #1c2529; --surface: #171d20;
+      --ink: #e8eef1; --text: #d5dee2; --text-2: #a9b6bc; --muted: #8d9aa1;
+      --grid: #263035; --axis: #3a464c; --border: rgba(255, 255, 255, 0.09);
+      --control: #1d2529; --control-hover: #243035; --focus: #6da7ec;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+      --band: #142c38; --band-fg: #f2f7f9; --band-2: #a9c2cd; --band-line: rgba(255, 255, 255, 0.14); --band-chip: rgba(255, 255, 255, 0.06);
+      /* Dark ramps validated against #171d20 */
+      --fte-1: #9ec5f4; --fte-2: #6da7ec; --fte-3: #3987e5; --fte-4: #256abf; --fit: #eb6834;
+      --box-fill: rgba(255, 255, 255, 0.06); --box-stroke: #8d9aa1; --dot: #a9b6bc;
+      --sal-1: #038871; --sal-2: #11a68b; --sal-3: #1dc6a6; --sal-4: #44e5c2;
+      --ok: #4cc27a; --ok-bg: rgba(76, 194, 122, 0.16); --warn: #f28b82; --warn-bg: rgba(242, 139, 130, 0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0e1417; --panel: #171d20; --panel-2: #1c2529; --surface: #171d20;
+    --ink: #e8eef1; --text: #d5dee2; --text-2: #a9b6bc; --muted: #8d9aa1;
+    --grid: #263035; --axis: #3a464c; --border: rgba(255, 255, 255, 0.09);
+    --control: #1d2529; --control-hover: #243035; --focus: #6da7ec;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+    --band: #142c38; --band-fg: #f2f7f9; --band-2: #a9c2cd; --band-line: rgba(255, 255, 255, 0.14); --band-chip: rgba(255, 255, 255, 0.06);
+    --fte-1: #9ec5f4; --fte-2: #6da7ec; --fte-3: #3987e5; --fte-4: #256abf; --fit: #eb6834;
+    --box-fill: rgba(255, 255, 255, 0.06); --box-stroke: #8d9aa1; --dot: #a9b6bc;
+    --sal-1: #038871; --sal-2: #11a68b; --sal-3: #1dc6a6; --sal-4: #44e5c2;
+    --ok: #4cc27a; --ok-bg: rgba(76, 194, 122, 0.16); --warn: #f28b82; --warn-bg: rgba(242, 139, 130, 0.16);
+  }
+
+  /* Base */
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.012em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  p { margin: 0; }
+  a { color: var(--focus); text-underline-offset: 2px; }
+  code {
+    font-size: 0.86em;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :where(a, button, input, summary, .chart svg):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .chart svg:focus { outline: none; }
+  .chart svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 6px; }
+  .kicker {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* Masthead */
+  .masthead { background: var(--band); color: var(--band-fg); }
+  .masthead .wrap { padding-block: clamp(36px, 6vw, 72px) clamp(28px, 4.5vw, 48px); display: grid; gap: 18px; }
+  .masthead .kicker { color: var(--band-2); }
+  .masthead h1 {
+    color: var(--band-fg);
+    font-size: clamp(2rem, 1.15rem + 3.4vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.022em;
+    max-width: 21ch;
+  }
+  .dek { color: var(--band-2); font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.22rem); max-width: 58ch; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 28px; margin-top: 14px; }
+  .stats .tile { border-top: 1px solid var(--band-line); padding-top: 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .stats .value { font-size: clamp(1.9rem, 1.4rem + 1.5vw, 2.6rem); font-weight: 700; line-height: 1; letter-spacing: -0.015em; color: var(--band-fg); }
+  .stats .label { font-size: 0.875rem; line-height: 1.4; color: var(--band-2); }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chip {
+    display: inline-block;
+    padding: 5px 12px; border-radius: 999px;
+    background: var(--band-chip); border: 1px solid var(--band-line);
+    color: var(--band-fg); font-size: 0.82rem; text-decoration: none; line-height: 1.3;
+  }
+  a.chip:hover { background: var(--band-line); }
+  .verify-badge { display: inline-flex; align-items: center; gap: 6px; }
+  .verify-badge .mark { font-weight: 700; color: var(--band-ok); }
+  .verify-badge.bad .mark { color: var(--band-warn); }
+
+  /* Main column */
+  main.wrap { padding-block: 32px 56px; display: grid; gap: 28px; }
+  .lead { display: grid; gap: 14px; }
+  .findings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 44px; }
+  .finding { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .finding h3 { font-size: 1.15rem; }
+  .finding p { font-size: 0.98rem; line-height: 1.6; color: var(--text); max-width: 62ch; }
+  .fig-link { font-size: 0.85rem; font-weight: 600; text-decoration: none; justify-self: start; }
+  .fig-link:hover { text-decoration: underline; }
+  .caveat { font-size: 0.9rem; color: var(--text-2); max-width: 80ch; }
+  .insight { margin-top: 14px; font-size: 0.95rem; line-height: 1.6; color: var(--text); max-width: 84ch; }
+  .insight strong { color: var(--ink); }
+
+  /* Figure panels */
+  .figure {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: clamp(16px, 2.6vw, 28px);
+    min-width: 0;
+  }
+  .fig-head { display: grid; gap: 6px; }
+  .fig-head h2 { font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.65rem); }
+  .sub { color: var(--text-2); font-size: 0.95rem; max-width: 78ch; }
+
+  /* Controls */
+  .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 20px; }
+  .field { display: grid; gap: 6px; flex: 1 1 280px; max-width: 460px; min-width: 0; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: var(--text-2); }
+  .search-wrap { display: flex; gap: 8px; }
+  .search-box { position: relative; flex: 1; min-width: 0; }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%);
+    fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; pointer-events: none;
+  }
+  input[type="search"] {
+    width: 100%; height: 42px;
+    font: inherit; font-size: 0.95rem; color: var(--text);
+    background: var(--control);
+    border: 1px solid var(--axis); border-radius: 10px;
+    padding: 0 12px 0 36px;
+  }
+  input[type="search"]:hover { border-color: var(--muted); }
+  .btn {
+    height: 42px; padding: 0 14px;
+    font-size: 0.9rem; font-weight: 500; color: var(--text);
+    background: var(--control);
+    border: 1px solid var(--axis); border-radius: 10px;
+  }
+  .btn:hover:not(:disabled) { background: var(--control-hover); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .zoom-group { display: flex; align-items: center; gap: 8px; }
+  .segmented { display: inline-flex; border: 1px solid var(--axis); border-radius: 10px; overflow: hidden; background: var(--control); }
+  .segmented button { width: 42px; height: 40px; border: 0; background: none; font-size: 1.2rem; line-height: 1; color: var(--text); }
+  .segmented button + button { border-left: 1px solid var(--axis); }
+  .segmented button:hover:not(:disabled) { background: var(--control-hover); }
+  .segmented button:disabled { opacity: 0.4; cursor: default; }
+  .segmented button:focus-visible { outline-offset: -3px; }
+  .zoom-level { font-size: 0.8rem; color: var(--muted); min-width: 3em; font-variant-numeric: tabular-nums; }
+  .status { font-size: 0.875rem; color: var(--text-2); min-height: 1.4em; margin-top: 10px; }
+  .status:empty { min-height: 0; margin-top: 0; }
+  .status strong { color: var(--text); }
+  .slider-field { max-width: 420px; }
+  .slider-field output { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; height: 42px; margin: 0; accent-color: var(--sal-3); }
+
+  /* Legends */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px 40px;
+    margin-top: 14px; padding: 12px 16px;
+    background: var(--panel-2); border-radius: 10px;
+  }
+  .legend > * { min-width: 0; }
+  .legend-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .legend-note { font-size: 0.8rem; color: var(--text-2); margin-top: 2px; }
+  .legend-items { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .legend-items li { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+  .legend-items svg { flex: none; overflow: visible; }
+  .legend .bubble { stroke: none; }
+  .legend-items .q { font-weight: 650; color: var(--text); }
+  .legend-items .range { color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .fit-key { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; max-width: 440px; }
+  .fit-key svg { flex: none; margin-top: 7px; }
+  .fit-key strong { color: var(--text); }
+  .fit-key span { color: var(--text-2); }
+  .series-list { list-style: none; padding: 0; margin: 6px 0 0 -10px; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+  .series-btn {
+    display: flex; align-items: center; gap: 8px; min-height: 36px;
+    padding: 4px 10px; border: 1px solid transparent; border-radius: 8px; background: none;
+    font-size: 0.85rem; text-align: left;
+  }
+  .series-btn:hover { background: var(--control-hover); }
+  .series-btn[aria-pressed="true"] { border-color: var(--axis); background: var(--panel); }
+  .series-btn.is-dim { opacity: 0.5; }
+  .series-btn .q { font-weight: 650; color: var(--text); }
+  .series-btn .range { color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .series-btn svg { flex: none; }
+
+  /* Charts */
+  .chart { position: relative; margin-top: 16px; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; }
+  .hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; max-width: 95ch; }
+  .readout { margin-top: 12px; padding: 10px 14px; background: var(--panel-2); border-radius: 10px; font-size: 0.9rem; color: var(--text); }
+  .readout strong { color: var(--ink); }
+  .readout .muted { color: var(--text-2); }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  .baseline { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+  .tick { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .axis-title { fill: var(--text-2); font-size: 12.5px; font-weight: 600; }
+
+  .bubble { stroke: var(--surface); stroke-width: 1; fill-opacity: 0.85; transition: opacity 120ms; }
+  .fq1 { fill: var(--fte-1); } .fq2 { fill: var(--fte-2); } .fq3 { fill: var(--fte-3); } .fq4 { fill: var(--fte-4); }
+  .dim { opacity: 0.14; }
+  .is-hover { stroke: var(--ink); stroke-width: 1.5; }
+  .fit-halo { fill: none; stroke: var(--surface); stroke-width: 6; stroke-linecap: round; opacity: 0.9; }
+  .fit-line { fill: none; stroke: var(--fit); stroke-width: 2.5; stroke-linecap: round; }
+  .fit-label, .sel-label, .median-label, .thr-label, .thr-title {
+    paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round;
+  }
+  .fit-label { fill: var(--ink); font-size: 12.5px; font-weight: 700; }
+  .sel-ring { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .sel-label { fill: var(--ink); font-size: 13px; font-weight: 700; }
+
+  .box { fill: var(--box-fill); stroke: var(--box-stroke); stroke-width: 1.25; }
+  .whisker { stroke: var(--box-stroke); stroke-width: 1.25; }
+  .median-line { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+  .bdot { fill: var(--dot); fill-opacity: 0.45; stroke: var(--surface); stroke-width: 0.75; transition: opacity 120ms; }
+  .bdot.is-hover { fill-opacity: 1; stroke: var(--ink); stroke-width: 1.5; }
+  .bdot.is-selected { fill-opacity: 1; }
+  .median-label { fill: var(--ink); font-size: 12px; }
+  .median-label .v { font-weight: 700; font-size: 13px; }
+  .group-label { fill: var(--text); font-size: 13px; font-weight: 700; }
+  .group-sub { fill: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .band-hover { fill: var(--ink); opacity: 0.035; }
+
+  .ecdf-line { fill: none; stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; transition: opacity 120ms; }
+  .sq1 { stroke: var(--sal-1); } .sq2 { stroke: var(--sal-2); } .sq3 { stroke: var(--sal-3); } .sq4 { stroke: var(--sal-4); }
+  .sf1 { fill: var(--sal-1); } .sf2 { fill: var(--sal-2); } .sf3 { fill: var(--sal-3); } .sf4 { fill: var(--sal-4); }
+  .dash-q2 { stroke-dasharray: 9 5; }
+  .dash-q3 { stroke-dasharray: 0.1 5; }
+  .dash-q4 { stroke-dasharray: 9 5 0.1 5; }
+  .ecdf-dim { opacity: 0.14; }
+  .thr-line { stroke: var(--muted); stroke-width: 1.25; }
+  .crosshair { stroke: var(--text-2); stroke-width: 1; opacity: 0.6; pointer-events: none; }
+  .thr-dot { stroke: var(--surface); stroke-width: 2; }
+  .thr-label { fill: var(--text); font-size: 12px; }
+  .thr-label .v { font-weight: 700; fill: var(--ink); }
+  .thr-title { fill: var(--text-2); font-size: 12px; font-weight: 600; }
+  .leader { stroke: var(--muted); stroke-width: 1; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed; z-index: 10; pointer-events: none;
+    max-width: 300px; padding: 10px 12px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.28);
+    font-size: 0.85rem; line-height: 1.35;
+  }
+  .tooltip[hidden] { display: none; }
+  .tt-name { font-family: var(--font-display); font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .tt-rows { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+  .tt-rows dt { color: var(--text-2); }
+  .tt-rows dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .tt-rows dd .aside { font-weight: 400; color: var(--text-2); }
+  .tt-key { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+
+  /* Tables */
+  .table-wrap { overflow: auto; margin-top: 16px; max-height: 520px; border: 1px solid var(--grid); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.name { white-space: normal; min-width: 200px; }
+  thead th { position: sticky; top: 0; background: var(--panel-2); z-index: 1; font-size: 0.78rem; font-weight: 700; color: var(--text-2); }
+  th button { all: unset; cursor: pointer; font-weight: 700; color: var(--text-2); }
+  #data-table tbody tr { cursor: pointer; }
+  #data-table tbody tr:hover { background: var(--control-hover); }
+  #data-table tbody tr.is-selected { background: var(--box-fill); font-weight: 650; }
+  .group-table-wrap { max-height: none; }
+  #group-table .peak td { font-weight: 700; color: var(--ink); }
+  #group-table th, #group-table td { white-space: normal; vertical-align: top; }
+
+  /* Notes and checks */
+  .notes-grid { display: grid; grid-template-columns: 1fr; gap: 36px; padding-top: 8px; }
+  @media (min-width: 860px) { .notes-grid { grid-template-columns: 1fr 1fr; gap: 56px; } }
+  .notes-grid > div { min-width: 0; display: grid; gap: 12px; align-content: start; }
+  .notes-grid h2 { font-size: 1.35rem; }
+  .notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .notes li { position: relative; padding-left: 20px; font-size: 0.95rem; }
+  .notes li::before {
+    content: ""; position: absolute; left: 2px; top: 0.6em;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ink); opacity: 0.5;
+  }
+  .checks { list-style: none; margin: 0; padding: 0; }
+  .checks li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 0.9rem; }
+  .checks .mark {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 0.72rem; font-weight: 700; margin-top: 1px;
+  }
+  .checks .pass .mark { background: var(--ok-bg); color: var(--ok); }
+  .checks .fail .mark { background: var(--warn-bg); color: var(--warn); }
+  .checks .detail { color: var(--text-2); display: block; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+
+  /* Data table disclosure */
+  details.figure { padding-block: 16px; }
+  details.figure > summary {
+    cursor: pointer; list-style: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--ink);
+  }
+  details.figure > summary::-webkit-details-marker { display: none; }
+  details.figure > summary::after {
+    content: ""; flex: none; width: 9px; height: 9px; margin-right: 6px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); transition: transform 150ms;
+  }
+  details[open].figure > summary::after { transform: rotate(-135deg); }
+  details.figure > .sub { margin-top: 10px; }
+
+  /* Source */
+  footer.source {
+    border-top: 1px solid var(--border); padding-top: 22px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px 36px;
+    font-size: 0.85rem; color: var(--text-2);
+  }
+  footer.source > div { min-width: 0; display: grid; gap: 4px; align-content: start; }
+
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    main.wrap { padding-block: 24px 40px; gap: 22px; }
+    .figure { border-radius: 12px; }
+    .tick { font-size: 11px; }
+    .findings { grid-template-columns: 1fr; gap: 20px; }
+    #group-table { font-size: 0.8rem; }
+    #group-table th, #group-table td { padding: 7px 6px; }
+    #group-table .opt { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bubble, .bdot, .ecdf-line, details.figure > summary::after { transition: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .controls, .hint, details.figure { display: none; }
+    .figure { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">Massachusetts school districts · DESE data</p>
+    <h1>Do Massachusetts districts that pay teachers more keep more of them?</h1>
+    <p class="dek">Slightly. Higher-paying districts tend to keep a bit more of their teachers, but pay explains little of the difference, and most of the gap is between the lowest-paying quarter of districts and the rest.</p>
+    <div class="stats" id="tiles"></div>
+    <div class="meta">
+      <span class="chip">Salary: 2023–24 school year</span>
+      <span class="chip">Retention: DESE 2025 report</span>
+      <span class="chip"><span data-fill="n">393</span> districts</span>
+      <a class="chip verify-badge" id="verify-badge" href="#checks-h"></a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="lead" aria-labelledby="takeaway-h">
+    <h2 class="kicker" id="takeaway-h">Takeaway</h2>
+    <div class="findings" id="findings"></div>
+    <p class="caveat" id="caveat"></p>
+  </section>
+
+  <section class="figure" aria-labelledby="scatter-h">
+    <div class="fig-head">
+      <p class="kicker">Figure 1</p>
+      <h2 id="scatter-h">Average teacher salary and teacher retention, by district</h2>
+      <p class="sub">Each bubble is one district. Retention axis starts at 25%.</p>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="search">Find a district</label>
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="M13 13l4.5 4.5"></path></svg>
+            <input id="search" type="search" list="district-list" placeholder="Type a district name" autocomplete="off" spellcheck="false">
+          </div>
+          <button id="clear" class="btn" type="button">Clear</button>
+        </div>
+        <datalist id="district-list"></datalist>
+      </div>
+      <div class="zoom-group" role="group" aria-label="Zoom the scatterplot">
+        <div class="segmented">
+          <button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+          <button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+        </div>
+        <button id="zoom-reset" class="btn" type="button">Reset</button>
+        <span class="zoom-level" id="zoom-level" aria-live="polite">1×</span>
+      </div>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <div class="legend" id="scatter-legend"></div>
+    <div class="chart" id="scatter"></div>
+    <p class="insight" id="insight-scatter"></p>
+    <p class="hint">Hover or tap a bubble for details; click to select it. Zoom with − / + or Ctrl/⌘ + scroll, and drag to pan. With the chart focused, ← → step through districts by salary.</p>
+  </section>
+
+  <section class="figure" aria-labelledby="box-h">
+    <div class="fig-head">
+      <p class="kicker">Figure 2</p>
+      <h2 id="box-h">Retention by salary quartile</h2>
+      <p class="sub">Districts grouped by salary quartile, Q1 = lowest salaries. Boxes span the middle 50% of districts and the thick line marks the median. Whiskers reach the furthest district within 1.5 box-heights of the box; dots are districts.</p>
+    </div>
+    <div class="chart" id="boxplot"></div>
+    <p class="insight" id="insight-box"></p>
+    <div class="table-wrap group-table-wrap">
+      <table id="group-table">
+        <caption class="visually-hidden">Retention summary by salary quartile</caption>
+        <thead><tr>
+          <th scope="col">Salary quartile</th>
+          <th scope="col">Observed salary range</th>
+          <th scope="col" class="num">Districts</th>
+          <th scope="col" class="num">Median retention</th>
+          <th scope="col" class="num opt">Middle 50%</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="figure" aria-labelledby="ecdf-h">
+    <div class="fig-head">
+      <p class="kicker">Figure 3</p>
+      <h2 id="ecdf-h">Cumulative distribution of retention by salary quartile</h2>
+      <p class="sub">Each line shows the share of a quartile's districts at or below a given retention rate. Lines further right mean higher retention.</p>
+    </div>
+    <div class="controls">
+      <div class="field slider-field">
+        <label for="thr">Comparison point: <output id="thr-out" for="thr">90.0%</output> retention</label>
+        <input id="thr" type="range" min="30" max="100" step="0.5" value="90">
+      </div>
+      <button id="thr-reset" class="btn" type="button">Back to 90%</button>
+    </div>
+    <div class="legend">
+      <div>
+        <p class="legend-title">Salary quartile · click to isolate</p>
+        <ul class="series-list" id="ecdf-legend"></ul>
+      </div>
+    </div>
+    <div class="chart" id="ecdf"></div>
+    <p class="insight" id="insight-ecdf"></p>
+    <p class="readout" id="ecdf-readout" aria-live="polite"></p>
+    <p class="hint">Hover to compare quartiles at any rate. Click or tap the chart, drag the slider, or use ← → to move the comparison point. 90% is a reference point, not an official target.</p>
+  </section>
+
+  <section class="notes-grid" aria-label="Interpretation and data checks">
+    <div>
+      <h2 id="interp-h">Caveats</h2>
+      <ul class="notes" id="notes"></ul>
+    </div>
+    <div>
+      <h2 id="checks-h">Data checks</h2>
+      <p class="sub">Recomputed in your browser from the embedded <code>plotted_districts.csv</code> and compared with the R output.</p>
+      <ul class="checks" id="checks"></ul>
+    </div>
+  </section>
+
+  <details class="figure" id="table-card">
+    <summary>View the data as a table (<span data-fill="n">393</span> districts)</summary>
+    <p class="sub">Follows the district search. Click a heading to sort or a row to select a district.</p>
+    <div class="table-wrap">
+      <table id="data-table">
+        <thead><tr>
+          <th scope="col"><button type="button" data-sort="name">District</button></th>
+          <th scope="col" class="num"><button type="button" data-sort="salary">Avg. salary</button></th>
+          <th scope="col" class="num"><button type="button" data-sort="ret">Retention</button></th>
+          <th scope="col" class="num"><button type="button" data-sort="fte">Teacher FTE</button></th>
+          <th scope="col"><button type="button" data-sort="sg">Salary quartile</button></th>
+          <th scope="col"><button type="button" data-sort="fq">FTE quartile</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+
+  <footer class="source">
+    <div>
+      <span class="kicker">Source</span>
+      <p>Massachusetts Department of Elementary and Secondary Education (DESE), School and District Profiles: <a href="https://profiles.doe.mass.edu/statereport/teachersalaries.aspx">Teacher Salaries</a> report (2023–24 school year) and <a href="https://profiles.doe.mass.edu/statereport/staffingRetentionRates.aspx">Staffing Retention Rates</a> report (2025). Retrieved October 15, 2026.</p>
+    </div>
+    <div>
+      <span class="kicker">Coverage</span>
+      <p><span data-fill="n">393</span> districts with both an average teacher salary and a teacher retention rate. State totals and 6 districts missing salary or retention data were excluded. Teacher FTE = full-time-equivalent teachers in the salary report.</p>
+    </div>
+    <div>
+      <span class="kicker">Method</span>
+      <p>Unweighted least-squares fit of retention on average salary, one point per district. Quartiles use R's default (type 7) cut points. Charter status is read from the district name, so it is approximate.</p>
+    </div>
+  </footer>
+</main>
+
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+<script type="text/csv" id="district-data">
+district_code,district_name,salary_group,average_salary,retention_rate_pct,teacher_fte
+00010000,Abington,Q2,88409,89.8,158.7
+00030000,Acushnet,Q1,77654,90.7,74.8
+00050000,Agawam,Q4,103238,87.9,277.8
+00070000,Amesbury,Q2,88756,87.8,169.4
+00080000,Amherst,Q2,87842,89.4,111.2
+00090000,Andover,Q4,107624,90.2,468.2
+00100000,Arlington,Q3,95661,88.7,490.4
+00140000,Ashland,Q3,94563,89.4,221.2
+00160000,Attleboro,Q3,95946,89,405.8
+00170000,Auburn,Q2,86267,89.1,186.3
+00180000,Avon,Q2,84497,87.7,75.7
+00200000,Barnstable,Q3,96107,88.4,427.1
+00230000,Bedford,Q4,104686,87.8,227.9
+00240000,Belchertown,Q2,82993,89.6,169.3
+00250000,Bellingham,Q3,98522,88.5,154.7
+00260000,Belmont,Q4,111738,91.8,294.4
+00270000,Berkley,Q2,85059,91.3,68.3
+00300000,Beverly,Q2,87991,89.2,378.3
+00310000,Billerica,Q4,108203,92.9,359.9
+00350000,Boston,Q4,133127,83.8,4384.6
+00360000,Bourne,Q3,94661,90.7,145.9
+00380000,Boxford,Q2,89077,82.2,70.4
+00400000,Braintree,Q4,102103,88.2,416.3
+00410000,Brewster,Q3,91701,88.2,47
+00430000,Brimfield,Q3,93547,96.4,27.6
+00440000,Brockton,Q4,105757,88.5,963.1
+00450000,Brookfield,Q1,70168,100,26
+00460000,Brookline,Q4,122329,87.4,581.9
+00480000,Burlington,Q4,106851,86.5,326.6
+00490000,Cambridge,Q4,107958,85.7,762.8
+00500000,Canton,Q4,106307,85.4,260.6
+00510000,Carlisle,Q4,123419,91.8,60.2
+00520000,Carver,Q2,85830,87.8,126.6
+00560000,Chelmsford,Q2,90640,89.8,378.7
+00570000,Chelsea,Q2,89573,79.1,490.5
+00610000,Chicopee,Q2,90848,87.1,615.6
+00630000,Clarksburg,Q1,76847,81.3,16.5
+00640000,Clinton,Q2,87059,89.2,163.6
+00650000,Cohasset,Q3,97046,92.1,133.1
+00670000,Concord,Q4,114372,93.2,185.3
+00680000,Conway,Q1,71978,90,16.7
+00710000,Danvers,Q3,97514,87.2,272
+00720000,Dartmouth,Q3,93106,92,276.4
+00730000,Dedham,Q4,105228,91.6,246.2
+00740000,Deerfield,Q1,74475,85.7,33.2
+00770000,Douglas,Q1,80255,88.3,97.4
+00780000,Dover,Q4,101426,85.1,44.5
+00790000,Dracut,Q2,84757,85.3,244.7
+00820000,Duxbury,Q3,96993,89.8,231.3
+00830000,East Bridgewater,Q1,79466,86.5,166.9
+00850000,Eastham,Q4,106846,90.5,18.1
+00860000,Easthampton,Q1,75127,85.7,117.8
+00870000,East Longmeadow,Q2,85672,89.4,200.7
+00880000,Easton,Q3,95625,91.9,264.9
+00890000,Edgartown,Q4,109042,78.6,46.2
+00910000,Erving,Q1,62616,85.7,19.4
+00930000,Everett,Q4,112487,85.9,578
+00940000,Fairhaven,Q1,82224,91.5,137
+00950000,Fall River,Q2,82549,78.9,865.6
+00960000,Falmouth,Q3,92617,89,286.1
+00970000,Fitchburg,Q2,84723,81.8,447.6
+00980000,Florida,Q1,44429,66.7,16.5
+00990000,Foxborough,Q3,96519,91.9,213.7
+01000000,Framingham,Q4,101833,81.8,791.1
+01010000,Franklin,Q3,92192,85,382.8
+01030000,Gardner,Q4,104103,84,148.1
+01050000,Georgetown,Q4,126247,72.5,70.6
+01070000,Gloucester,Q2,86417,88.1,267.9
+01100000,Grafton,Q1,81934,89.9,238.8
+01110000,Granby,Q1,70777,88.7,58
+01140000,Greenfield,Q1,73650,76.9,129.7
+01170000,Hadley,Q1,74766,95.9,55
+01180000,Halifax,Q3,99498,90.2,39.6
+01210000,Hancock,Q1,59463,60,7.8
+01220000,Hanover,Q4,104046,82.2,196.7
+01250000,Harvard,Q3,91787,83.3,88.3
+01270000,Hatfield,Q2,87392,86.4,39.5
+01280000,Haverhill,Q2,85921,86.4,668.5
+01310000,Hingham,Q4,107109,89.8,307.5
+01330000,Holbrook,Q2,82613,88.5,101.5
+01350000,Holland,Q1,80675,81,21
+01360000,Holliston,Q3,94950,86.5,211.3
+01370000,Holyoke,Q1,78553,75.7,417.7
+01380000,Hopedale,Q1,75040,87.1,98
+01390000,Hopkinton,Q4,109298,95.2,292.2
+01410000,Hudson,Q3,92228,87,233.4
+01420000,Hull,Q4,101140,83.8,79
+01440000,Ipswich,Q3,97085,92.8,162.3
+01450000,Kingston,Q1,74935,79.3,79.4
+01490000,Lawrence,Q2,84516,75,1149.5
+01500000,Lee,Q1,82282,91.8,72.3
+01510000,Leicester,Q1,76840,84.8,108.6
+01520000,Lenox,Q2,84669,90.4,81.9
+01530000,Leominster,Q2,88631,86.9,440.3
+01540000,Leverett,Q1,58563,76.5,15.5
+01550000,Lexington,Q4,107428,91,649.5
+01570000,Lincoln,Q3,97169,90.2,118.1
+01580000,Littleton,Q2,90487,90.7,123.2
+01590000,Longmeadow,Q2,84103,92,244.4
+01600000,Lowell,Q3,93138,87.7,1158.6
+01610000,Ludlow,Q2,84196,88.8,194.6
+01620000,Lunenburg,Q3,98894,80.2,114
+01630000,Lynn,Q3,100141,82.3,1312.1
+01640000,Lynnfield,Q4,103446,84.7,160.1
+01650000,Malden,Q4,106848,85.1,463.4
+01670000,Mansfield,Q3,98793,89.1,296.7
+01680000,Marblehead,Q2,90696,81.4,245.8
+01690000,Marion,Q3,100512,97,32.8
+01700000,Marlborough,Q2,87213,85.4,410.3
+01710000,Marshfield,Q2,89674,89.9,326
+01720000,Mashpee,Q2,87851,89.9,134.1
+01730000,Mattapoisett,Q4,106358,94.9,36.8
+01740000,Maynard,Q2,88985,86.7,115.8
+01750000,Medfield,Q4,108310,85.8,208.9
+01760000,Medford,Q3,98518,86.9,401.4
+01770000,Medway,Q2,90793,80,159.9
+01780000,Melrose,Q2,85682,87,283.7
+01810000,Methuen,Q2,86154,88,541.3
+01820000,Middleborough,Q4,103514,88.4,213.6
+01840000,Middleton,Q2,90294,90.3,69.3
+01850000,Milford,Q4,105452,91.7,395.2
+01860000,Millbury,Q3,92660,91.9,130.8
+01870000,Millis,Q4,100915,87.7,102.6
+01890000,Milton,Q3,100399,91.5,340.8
+01910000,Monson,Q1,69455,77.5,88
+01960000,Nahant,Q2,85848,73.3,10.9
+01970000,Nantucket,Q4,102575,87.3,159.7
+01980000,Natick,Q3,100680,90.7,457.6
+01990000,Needham,Q4,101790,90.5,449.8
+02010000,New Bedford,Q2,88190,86.8,1034
+02040000,Newburyport,Q3,92090,86.7,214.9
+02070000,Newton,Q4,104716,91.1,1058.8
+02080000,Norfolk,Q3,96255,93.3,86.8
+02090000,North Adams,Q1,76435,73.1,125.4
+02100000,Northampton,Q1,80036,86.6,239.8
+02110000,North Andover,Q3,94771,90.9,335.4
+02120000,North Attleborough,Q3,95538,87.9,301.7
+02130000,Northborough,Q4,102381,85.7,134.2
+02140000,Northbridge,Q2,88664,82.5,148.5
+02150000,North Brookfield,Q1,72468,75.6,39.4
+02170000,North Reading,Q3,94846,93,207.7
+02180000,Norton,Q3,98966,86.7,190
+02190000,Norwell,Q4,100868,96.5,168.3
+02200000,Norwood,Q3,92324,88.2,331
+02210000,Oak Bluffs,Q4,101141,90.8,52.8
+02230000,Orange,Q2,84749,85.7,42
+02240000,Orleans,Q4,107821,95.8,21.3
+02260000,Oxford,Q1,80053,90,124.3
+02270000,Palmer,Q1,80277,83.7,102.6
+02290000,Peabody,Q3,92811,90.2,479.8
+02300000,Pelham,Q1,70457,66.7,12.8
+02310000,Pembroke,Q3,96469,90.7,186.9
+02340000,Petersham,Q1,76837,84.6,11.4
+02360000,Pittsfield,Q1,74111,82,513.7
+02380000,Plainville,Q3,91850,90.6,51.5
+02390000,Plymouth,Q2,85129,90.2,630.4
+02400000,Plympton,Q3,96745,90.9,18.7
+02420000,Provincetown,Q4,164619,82.6,18.9
+02430000,Quincy,Q3,94955,92.9,758.5
+02440000,Randolph,Q3,97920,80.1,241.1
+02460000,Reading,Q3,96405,86.8,297.8
+02480000,Revere,Q3,93765,83.8,644.7
+02490000,Richmond,Q3,99025,85,19.4
+02500000,Rochester,Q2,85433,97.6,41.3
+02510000,Rockland,Q3,93399,90.9,175.3
+02520000,Rockport,Q3,91446,87.4,82.1
+02530000,Rowe,Q1,73503,66.7,9.1
+02580000,Salem,Q3,96388,78.7,357.9
+02610000,Sandwich,Q2,87840,88.2,193
+02620000,Saugus,Q2,89778,84.5,181.1
+02630000,Savoy,Q1,56905,100,7.1
+02640000,Scituate,Q4,107926,90.8,236.2
+02650000,Seekonk,Q3,91219,90.2,177.3
+02660000,Sharon,Q4,102426,89.8,273.8
+02690000,Sherborn,Q4,104937,80.6,34.3
+02710000,Shrewsbury,Q3,95247,87.8,437.3
+02720000,Shutesbury,Q1,63176,100,17.7
+02730000,Somerset,Q3,94038,88.2,132.4
+02740000,Somerville,Q4,104743,83,440.7
+02750000,Southampton,Q3,94266,100,36.5
+02760000,Southborough,Q3,100404,94,109.8
+02770000,Southbridge,Q1,75714,61.8,171.2
+02780000,South Hadley,Q1,78627,87.6,151.9
+02810000,Springfield,Q2,84692,81.9,2171.5
+02840000,Stoneham,Q1,81293,82.4,211.1
+02850000,Stoughton,Q3,96092,88,321.9
+02870000,Sturbridge,Q3,94211,90.3,72
+02880000,Sudbury,Q4,102734,86.3,225
+02890000,Sunderland,Q1,71986,81.5,23.9
+02900000,Sutton,Q2,91128,88.5,98
+02910000,Swampscott,Q3,91473,89.1,188.1
+02920000,Swansea,Q2,90913,92.8,150.3
+02930000,Taunton,Q3,97034,88.4,556.6
+02950000,Tewksbury,Q3,93284,93,254.1
+02960000,Tisbury,Q4,109424,83.3,39.8
+02980000,Topsfield,Q4,102507,86.9,54.7
+03000000,Truro,Q2,82775,94.7,16.1
+03010000,Tyngsborough,Q2,90962,89.8,126.6
+03040000,Uxbridge,Q2,90262,81.3,135.4
+03050000,Wakefield,Q3,94881,91.1,287.1
+03060000,Wales,Q1,65176,100,10.8
+03070000,Walpole,Q3,91393,91.2,305.7
+03080000,Waltham,Q3,97434,85.1,552.3
+03090000,Ware,Q1,77593,79.1,89.2
+03100000,Wareham,Q2,90119,85.9,178
+03120000,Warwick,Q1,51308,33.3,5.2
+03140000,Watertown,Q4,100692,89.1,264.5
+03150000,Wayland,Q4,115723,93.1,240.6
+03160000,Webster,Q2,89344,85.8,142.7
+03170000,Wellesley,Q4,109899,88.4,391.7
+03180000,Wellfleet,Q2,82671,85.7,12.6
+03210000,Westborough,Q3,94609,85.8,332.9
+03220000,West Boylston,Q2,89252,89.7,79.8
+03230000,West Bridgewater,Q2,83254,87.7,103.4
+03250000,Westfield,Q1,82215,87,417.9
+03260000,Westford,Q2,90677,89.7,367.7
+03270000,Westhampton,Q1,67157,88.9,17
+03300000,Weston,Q4,127449,92.3,173.8
+03310000,Westport,Q2,83017,88.7,124.5
+03320000,West Springfield,Q2,83026,90.9,343.3
+03350000,Westwood,Q4,113220,85.2,238
+03360000,Weymouth,Q3,94979,88.1,458.5
+03370000,Whately,Q1,59451,77.8,15.7
+03400000,Williamsburg,Q1,76506,88.9,16.8
+03420000,Wilmington,Q3,95988,91.1,262.2
+03430000,Winchendon,Q2,83722,68.5,90.7
+03440000,Winchester,Q4,103352,92.3,342.4
+03460000,Winthrop,Q1,82467,72,157.6
+03470000,Woburn,Q3,99232,90.7,383.4
+03480000,Worcester,Q4,101529,85.5,2042.9
+03490000,Worthington,Q1,51237,81.8,9.2
+03500000,Wrentham,Q2,90215,90.2,80
+04060000,Northampton-Smith Vocational Agricultural,Q1,79340,87.5,64
+04070000,Dudley Street Neighborhood Charter School (District),Q4,117469,73.7,19
+04090000,Alma del Mar Charter School (District),Q1,58329,67.4,85.4
+04100000,Excel Academy Charter (District),Q1,81966,70.8,130.1
+04110000,Boston Green Academy Horace Mann Charter School (District),Q4,119966,69.4,42.7
+04120000,Academy Of the Pacific Rim Charter Public (District),Q2,87517,64.3,54.6
+04130000,Four Rivers Charter Public (District),Q4,101236,63,17.7
+04140000,Berkshire Arts and Technology Charter Public (District),Q1,64550,70,35.3
+04160000,Boston Preparatory Charter Public (District),Q2,85336,49.3,64
+04170000,Bridge Boston Charter School (District),Q4,104899,67.6,34
+04180000,Christa McAuliffe Charter School (District),Q3,99391,64.7,32.3
+04200000,Benjamin Banneker Charter Public (District),Q1,76461,90.5,21
+04240000,Boston Day and Evening Academy Charter (District),Q4,163894,80.6,26.2
+04280000,Brooke Charter School (District),Q4,105564,77.1,181.2
+04290000,KIPP Academy Lynn Charter (District),Q3,93799,62.6,116.4
+04300000,Advanced Math and Science Academy Charter (District),Q1,75441,92.1,85.1
+04320000,Cape Cod Lighthouse Charter (District),Q1,81329,77.8,22.5
+04350000,Innovation Academy Charter (District),Q1,68753,81.3,70.9
+04360000,Community Charter School of Cambridge (District),Q4,113259,78.6,30.6
+04370000,City on a Hill Charter Public School (District),Q1,60782,43.3,20.5
+04380000,Codman Academy Charter Public (District),Q1,79754,50,46.2
+04390000,Conservatory Lab Charter (District),Q4,143067,70,30.2
+04400000,Community Day Charter Public School (District),Q1,65703,80.1,135.5
+04410000,Springfield International Charter (District),Q2,86657,82.6,79.1
+04440000,Neighborhood House Charter (District),Q1,82233,75.9,77.1
+04450000,Abby Kelley Foster Charter Public (District),Q2,83441,79.5,125.9
+04460000,Foxborough Regional Charter (District),Q1,65000,68.3,117
+04470000,Benjamin Franklin Classical Charter Public (District),Q4,111133,92.7,54.5
+04490000,Boston Collegiate Charter (District),Q2,85520,71.8,81.8
+04500000,Hilltown Cooperative Charter Public (District),Q1,67877,87.5,21.3
+04520000,Edward M. Kennedy Academy for Health Careers: A Horace Mann Charter Public School (District),Q4,118493,84.6,35.6
+04530000,Holyoke Community Charter (District),Q4,113583,77.8,35
+04540000,Lawrence Family Development Charter (District),Q1,63208,76.5,65
+04550000,Hill View Montessori Charter Public (District),Q2,83185,75,22.7
+04560000,Lowell Community Charter Public (District),Q2,86372,85.3,68.6
+04580000,Lowell Middlesex Academy Charter (District),Q4,113091,71.4,6.9
+04630000,KIPP Academy Boston Charter School (District),Q3,96886,78.2,54.5
+04640000,Marblehead Community Charter Public (District),Q1,72845,66.7,18
+04660000,Martha's Vineyard Charter Public School (District),Q4,100682,70.8,21.8
+04690000,Match Charter Public School (District),Q2,84266,63.2,121.6
+04700000,Mystic Valley Regional Charter (District),Q1,81359,66,98.4
+04740000,Sizer School: A North Central Charter Essential (District),Q1,62022,65.9,31.1
+04780000,Francis W. Parker Charter Essential (District),Q1,68472,78.7,41.3
+04790000,Pioneer Valley Performing Arts Charter Public (District),Q1,60151,75.6,43.3
+04810000,Boston Renaissance Charter Public (District),Q2,88025,67.5,83.3
+04820000,River Valley Charter (District),Q2,87750,88,25.2
+04830000,Rising Tide Charter Public (District),Q1,66593,69.8,58.1
+04840000,Roxbury Preparatory Charter (District),Q4,147596,58.1,48.2
+04850000,Salem Academy Charter (District),Q3,92376,63.3,39.7
+04860000,Learning First Charter Public School (District),Q4,112296,65.7,35
+04870000,Prospect Hill Academy Charter (District),Q2,85572,56.3,98.2
+04880000,South Shore Charter Public (District),Q2,85070,89.8,46.4
+04890000,Sturgis Charter Public (District),Q2,86960,85.1,88.1
+04910000,Atlantis Charter (District),Q1,60203,81,100.8
+04920000,"Martin Luther King, Jr. Charter School of Excellence (District)",Q1,64530,64.5,31
+04930000,"Phoenix Academy Charter Public High School, Chelsea (District)",Q1,58028,47.4,18.2
+04940000,Pioneer Charter School of Science (District),Q2,82927,79.7,71.2
+04960000,Global Learning Charter Public (District),Q1,68725,87.2,43.4
+04970000,Pioneer Valley Chinese Immersion Charter (District),Q1,74657,78.9,65.1
+04980000,Veritas Preparatory Charter School (District),Q1,73138,63.6,64.4
+04990000,Hampden Charter School of Science East (District),Q2,86120,83,47
+06000000,Acton-Boxborough,Q3,100138,90.3,396.8
+06030000,Hoosac Valley Regional,Q1,71349,74.7,92.6
+06050000,Amherst-Pelham,Q3,92296,83.1,108.4
+06100000,Ashburnham-Westminster,Q1,80274,90,166.2
+06150000,Athol-Royalston,Q1,76325,79.2,125.1
+06160000,Ayer Shirley School District,Q2,85887,85.3,139.8
+06180000,Berkshire Hills,Q2,90621,91.7,117.8
+06200000,Berlin-Boylston,Q2,85102,91.7,92.1
+06220000,Blackstone-Millville,Q3,94928,76.5,112.4
+06250000,Bridgewater-Raynham,Q3,100270,88.9,348.5
+06320000,Chesterfield-Goshen,Q2,85280,75,14.8
+06350000,Central Berkshire,Q2,86371,91.9,120.3
+06400000,Concord-Carlisle,Q4,126051,88.9,105.1
+06450000,Dennis-Yarmouth,Q4,110664,84.3,259.4
+06500000,Dighton-Rehoboth,Q2,91054,89.4,209.2
+06550000,Dover-Sherborn,Q4,117000,92.9,103.3
+06580000,Dudley-Charlton Reg,Q2,86012,91,262.4
+06600000,Nauset,Q4,101454,91.6,126.1
+06620000,Farmington River Reg,Q1,74582,86.7,14.2
+06650000,Freetown-Lakeville,Q2,84056,91.2,215
+06700000,Frontier,Q1,78317,94.4,51.6
+06720000,Gateway,Q1,73629,88.1,79.8
+06730000,Groton-Dunstable,Q2,91218,87.4,184.7
+06740000,Gill-Montague,Q1,72002,83.3,93.8
+06750000,Hamilton-Wenham,Q3,93642,85.8,148.1
+06800000,Hampden-Wilbraham,Q3,91843,89.6,202.6
+06830000,Hampshire,Q1,78970,90.3,69.3
+06850000,Hawlemont,Q3,97533,90,9
+06900000,King Philip,Q3,91869,88.8,141.1
+06950000,Lincoln-Sudbury,Q4,116612,93.1,128.7
+06980000,Manchester Essex Regional,Q3,98900,89.1,124.8
+07000000,Martha's Vineyard,Q4,135635,82.8,79.4
+07050000,Masconomet,Q4,111192,88.5,131.1
+07100000,Mendon-Upton,Q3,91256,88,161.1
+07120000,Monomoy Regional School District,Q2,88886,88.2,170.8
+07150000,Mount Greylock,Q2,83842,94,110.7
+07170000,Mohawk Trail,Q2,86280,88.8,68.9
+07200000,Narragansett,Q1,75777,94.2,98.3
+07250000,Nashoba,Q3,96175,87.8,246.9
+07280000,New Salem-Wendell,Q1,65422,88.2,15
+07300000,Northboro-Southboro,Q4,102790,94.8,108
+07350000,North Middlesex,Q2,83109,89.3,239.5
+07400000,Old Rochester,Q3,96118,88.9,89.6
+07450000,Pentucket,Q2,83787,87.9,184.4
+07500000,Pioneer Valley,Q1,75628,69.2,58.1
+07530000,Quabbin,Q2,83990,89.5,149.4
+07550000,Ralph C Mahar,Q1,77048,86.9,58.8
+07600000,Silver Lake,Q4,103356,85.2,128.1
+07630000,Somerset Berkley Regional School District,Q3,91835,88.9,77.7
+07650000,Southern Berkshire,Q1,62030,91.3,76.5
+07660000,Southwick-Tolland-Granville Regional School District,Q1,79998,91.7,119
+07670000,Spencer-E Brookfield,Q1,72463,81.7,117.5
+07700000,Tantasqua,Q2,83678,95.3,149.4
+07730000,Triton,Q3,98538,87.9,211.2
+07740000,Up-Island Regional,Q4,104782,89.2,53
+07750000,Wachusett,Q3,93919,94.3,467.7
+07780000,Quaboag Regional,Q2,87499,89.4,88.2
+07800000,Whitman-Hanson,Q4,101369,88.1,254.7
+08010000,Assabet Valley Regional Vocational Technical,Q4,101260,94.7,113.8
+08050000,Blackstone Valley Regional Vocational Technical,Q3,95131,92.6,107.9
+08060000,Blue Hills Regional Vocational Technical,Q4,106601,92.7,81.7
+08100000,Bristol-Plymouth Regional Vocational Technical,Q4,109818,93.3,103.8
+08150000,Cape Cod Regional Vocational Technical,Q3,94528,79.7,64.4
+08170000,Essex North Shore Agricultural and Technical School District,Q3,97747,87.4,152.3
+08180000,Franklin County Regional Vocational Technical,Q2,90340,89.8,57.6
+08210000,Greater Fall River Regional Vocational Technical,Q3,98650,94.4,143.1
+08230000,Greater Lawrence Regional Vocational Technical,Q4,104339,87.9,165
+08250000,Greater New Bedford Regional Vocational Technical,Q3,91867,86.8,196.6
+08280000,Greater Lowell Regional Vocational Technical,Q4,104314,93.5,212.5
+08290000,South Middlesex Regional Vocational Technical,Q3,93050,85.6,91.3
+08300000,Minuteman Regional Vocational Technical,Q4,111529,88,82.4
+08320000,Montachusett Regional Vocational Technical,Q3,98675,90.8,118.9
+08510000,Northern Berkshire Regional Vocational Technical,Q4,109233,98,48.4
+08520000,Nashoba Valley Regional Vocational Technical,Q4,101192,88.7,67.4
+08530000,Northeast Metropolitan Regional Vocational Technical,Q4,108331,85.9,120.3
+08550000,Old Colony Regional Vocational Technical,Q2,85016,80.6,62
+08600000,Pathfinder Regional Vocational Technical,Q1,80142,80,72.6
+08710000,Shawsheen Valley Regional Vocational Technical,Q4,113305,87.4,131.9
+08720000,Southeastern Regional Vocational Technical,Q4,102844,90,129
+08730000,South Shore Regional Vocational Technical,Q4,108940,89.7,64.3
+08760000,Southern Worcester County Regional Vocational School District,Q3,96161,87.1,115
+08780000,Tri-County Regional Vocational Technical,Q4,109289,90.8,85.9
+08790000,Upper Cape Cod Regional Vocational Technical,Q2,86254,90.9,86.8
+08850000,Whittier Regional Vocational Technical,Q3,98008,93.7,124.2
+09100000,Bristol County Agricultural,Q2,84240,95.8,46.4
+09150000,Norfolk County Agricultural,Q3,91810,91.5,58.2
+35020000,Baystate Academy Charter Public School (District),Q1,46147,48.3,58
+35030000,Collegiate Charter School of Lowell (District),Q1,60616,69.7,81.2
+35050000,UP Academy Charter School of Dorchester (District),Q4,128389,69.6,55.5
+35060000,Pioneer Charter School of Science II (District),Q1,79925,67.3,49
+35080000,"Phoenix Academy Public Charter High School, Springfield (District)",Q1,71384,61.1,15.1
+35090000,Argosy Collegiate Charter School (District),Q3,91785,75.4,47
+35100000,Springfield Preparatory Charter School (District),Q2,84723,72.7,42.3
+35130000,New Heights Charter School of Brockton (District),Q4,104260,61.7,44.1
+35140000,Libertas Academy Charter School (District),Q1,65637,49.1,53.1
+35150000,Old Sturbridge Academy Charter Public School (District),Q1,66197,67.9,26.3
+35170000,Map Academy Charter School (District),Q1,68040,73.9,25.1
+35180000,"Phoenix Academy Public Charter High School, Lawrence (District)",Q3,99750,30.8,12.4
+39010000,Greater Commonwealth Virtual District,Q1,81090,82.1,75.5
+39020000,TEC Connections Academy Commonwealth Virtual School District,Q4,135921,86.5,125.5
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Reference figures from the original R analysis (03_visualize.R outputs).
+  // The page recomputes everything from the CSV and checks it against these.
+  // ---------------------------------------------------------------------------
+  var R_REF = {
+    n: 393,
+    intercept: 70.45,       // 01_salary_retention_model_summary.txt: 7.045e+01
+    slopePerDollar: 1.517e-4, // average_salary 1.517e-04
+    r2: 0.05945,            // Multiple R-squared: 0.05945
+    salaryGroups: {         // data/clean/salary_group_summary.csv (atOrBelow90 = districts_at_or_below_threshold_pct)
+      Q1: { n: 99, min: 44429, max: 82467, median: 81.3, atOrBelow90: 84.84848484848484 },
+      Q2: { n: 98, min: 82549, max: 91218, median: 87.95, atOrBelow90: 79.59183673469387 },
+      Q3: { n: 98, min: 91219, max: 100680, median: 88.9, atOrBelow90: 61.224489795918366 },
+      Q4: { n: 98, min: 100682, max: 164619, median: 87.75, atOrBelow90: 68.36734693877551 }
+    },
+    fteGroups: {            // data/clean/fte_color_groups.csv
+      Q1: { n: 99, min: 5.2, max: 55 },
+      Q2: { n: 98, min: 55.5, max: 118.1 },
+      Q3: { n: 98, min: 118.9, max: 236.2 },
+      Q4: { n: 98, min: 238, max: 4384.6 }
+    }
+  };
+  var QS = ['Q1', 'Q2', 'Q3', 'Q4'];
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  function parseCSV(text) {
+    var rows = [], row = [], field = '', q = false, i = 0, c;
+    text = text.replace(/^\s+|\s+$/g, '');
+    while (i < text.length) {
+      c = text[i];
+      if (q) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          q = false; i++; continue;
+        }
+        field += c; i++; continue;
+      }
+      if (c === '"') { q = true; i++; continue; }
+      if (c === ',') { row.push(field); field = ''; i++; continue; }
+      if (c === '\n' || c === '\r') {
+        row.push(field); rows.push(row); row = []; field = '';
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        i++; continue;
+      }
+      field += c; i++;
+    }
+    row.push(field); rows.push(row);
+    var header = rows.shift();
+    var good = [], malformed = 0;
+    rows.forEach(function (r) {
+      if (r.length !== header.length) { malformed++; return; }
+      var o = {};
+      header.forEach(function (h, j) { o[h] = r[j]; });
+      good.push(o);
+    });
+    return { header: header, rows: good, malformed: malformed };
+  }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  // Half-up rounding on the decimal value (87.95 -> 88.0, 87.75 -> 87.8), matching the R chart labels.
+  function round(v, d) { var p = Math.pow(10, d); return Math.round(Number((v * p).toFixed(6))) / p; }
+  function fmtUSD(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+  function fmtUSDk(v) { return '$' + round(v / 1000, 1).toLocaleString('en-US') + 'k'; }
+  function fmtPct(v, d) { d = d == null ? 1 : d; return round(v, d).toFixed(d) + '%'; }
+  function fmtNum(v, d) { return round(v, d).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function q7(sorted, p) { // R quantile(type = 7)
+    var h = (sorted.length - 1) * p, lo = Math.floor(h), hi = Math.min(lo + 1, sorted.length - 1);
+    return sorted[lo] + (h - lo) * (sorted[hi] - sorted[lo]);
+  }
+  function sortNum(a) { return a.slice().sort(function (x, y) { return x - y; }); }
+  function quartileOf(v, cuts) { return v <= cuts[0] ? 'Q1' : v <= cuts[1] ? 'Q2' : v <= cuts[2] ? 'Q3' : 'Q4'; }
+  function el(tag, attrs, parent) {
+    var n = document.createElementNS(SVGNS, tag);
+    if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function html(tag, cls, text, parent) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function scale(d0, d1, r0, r1) {
+    var f = function (v) { return r0 + (v - d0) / (d1 - d0) * (r1 - r0); };
+    f.invert = function (p) { return d0 + (p - r0) / (r1 - r0) * (d1 - d0); };
+    return f;
+  }
+  function niceTicks(a, b, target) {
+    var span = b - a, raw = span / Math.max(1, target);
+    var mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    var steps = [1, 2, 2.5, 5, 10], step = mag;
+    for (var i = 0; i < steps.length; i++) { if (steps[i] * mag >= raw) { step = steps[i] * mag; break; } }
+    var out = [], v = Math.ceil(a / step - 1e-9) * step;
+    for (; v <= b + 1e-9; v += step) out.push(Number(v.toFixed(6)));
+    return out;
+  }
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function truncate(s, n) { return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; }
+
+  // ---------------------------------------------------------------------------
+  // Data
+  // ---------------------------------------------------------------------------
+  var parsed = parseCSV(document.getElementById('district-data').textContent);
+  var D = parsed.rows.map(function (r, i) {
+    return {
+      id: i,
+      code: r.district_code,
+      name: r.district_name,
+      sg: r.salary_group,
+      salary: parseFloat(r.average_salary),
+      ret: parseFloat(r.retention_rate_pct),
+      fte: parseFloat(r.teacher_fte)
+    };
+  });
+  var N = D.length;
+
+  // Unweighted OLS on the full dataset (fixed for the life of the page).
+  var mx = 0, my = 0;
+  D.forEach(function (d) { mx += d.salary; my += d.ret; });
+  mx /= N; my /= N;
+  var sxx = 0, sxy = 0, sst = 0;
+  D.forEach(function (d) { sxx += (d.salary - mx) * (d.salary - mx); sxy += (d.salary - mx) * (d.ret - my); sst += (d.ret - my) * (d.ret - my); });
+  var slope = sxy / sxx, intercept = my - slope * mx, sse = 0;
+  D.forEach(function (d) { var e = d.ret - (intercept + slope * d.salary); sse += e * e; });
+  var FIT = { a: intercept, b: slope, r2: 1 - sse / sst, per10k: slope * 1e4 };
+  function fitAt(x) { return FIT.a + FIT.b * x; }
+
+  // Quartiles
+  var salaryCuts = [0.25, 0.5, 0.75].map(function (p) { return q7(sortNum(D.map(function (d) { return d.salary; })), p); });
+  var fteCuts = [0.25, 0.5, 0.75].map(function (p) { return q7(sortNum(D.map(function (d) { return d.fte; })), p); });
+  D.forEach(function (d) { d.fq = quartileOf(d.fte, fteCuts); d.sgCheck = quartileOf(d.salary, salaryCuts); });
+
+  function groupStats(key) {
+    var out = {};
+    QS.forEach(function (q) {
+      var g = D.filter(function (d) { return d[key] === q; });
+      var ys = sortNum(g.map(function (d) { return d.ret; }));
+      var ss = g.map(function (d) { return d.salary; });
+      var fs = g.map(function (d) { return d.fte; });
+      var p25 = q7(ys, 0.25), med = q7(ys, 0.5), p75 = q7(ys, 0.75), iqr = p75 - p25;
+      var inside = ys.filter(function (y) { return y >= p25 - 1.5 * iqr - 1e-9 && y <= p75 + 1.5 * iqr + 1e-9; });
+      out[q] = {
+        q: q, n: g.length, members: g,
+        minSalary: Math.min.apply(null, ss), maxSalary: Math.max.apply(null, ss),
+        minFte: Math.min.apply(null, fs), maxFte: Math.max.apply(null, fs),
+        medFte: q7(sortNum(fs), 0.5),
+        p25: p25, median: med, p75: p75,
+        lo: inside[0], hi: inside[inside.length - 1]
+      };
+    });
+    return out;
+  }
+  var SG = groupStats('sg');
+  var FG = groupStats('fq');
+  // Sorted retention values per salary quartile, for the cumulative distribution.
+  var EV = {};
+  QS.forEach(function (q) { EV[q] = sortNum(SG[q].members.map(function (d) { return d.ret; })); });
+  function atOrBelow(q, x) {
+    var v = EV[q], c = 0;
+    while (c < v.length && v[c] <= x + 1e-9) c++;
+    return c;
+  }
+  var maxFte = Math.max.apply(null, D.map(function (d) { return d.fte; }));
+  var peakQ = QS.reduce(function (best, q) { return SG[q].median > SG[best].median ? q : best; }, 'Q1');
+  var lowQ = QS.reduce(function (best, q) { return SG[q].median < SG[best].median ? q : best; }, 'Q1');
+  var monotone = QS.every(function (q, i) { return i === 0 || SG[q].median >= SG[QS[i - 1]].median; });
+
+  // ---------------------------------------------------------------------------
+  // Verification against the CSV + R reference
+  // ---------------------------------------------------------------------------
+  var checks = [];
+  function addCheck(ok, label, detail) { checks.push({ ok: !!ok, label: label, detail: detail }); }
+  var codes = {};
+  D.forEach(function (d) { codes[d.code] = 1; });
+  var nonFinite = D.filter(function (d) { return !isFinite(d.salary) || !isFinite(d.ret) || !isFinite(d.fte); }).length;
+  addCheck(N === R_REF.n && Object.keys(codes).length === N && nonFinite === 0 && parsed.malformed === 0,
+    N + ' districts loaded, one row each',
+    Object.keys(codes).length + ' unique district codes · ' + nonFinite + ' missing or non-numeric values · ' + parsed.malformed + ' malformed rows');
+  var retMin = Math.min.apply(null, D.map(function (d) { return d.ret; }));
+  var retMax = Math.max.apply(null, D.map(function (d) { return d.ret; }));
+  addCheck(retMin >= 0 && retMax <= 100, 'Retention rates are on the 0–100 scale',
+    'Observed range ' + fmtPct(retMin) + ' to ' + fmtPct(retMax));
+  var sgMismatch = D.filter(function (d) { return d.sg !== d.sgCheck; }).length;
+  addCheck(sgMismatch === 0, 'salary_group matches quartiles recomputed from average_salary',
+    'Cut points ' + salaryCuts.map(fmtUSD).join(' / ') + ' · ' + sgMismatch + ' mismatches');
+  var sgOk = QS.every(function (q) {
+    var r = R_REF.salaryGroups[q], s = SG[q];
+    return s.n === r.n && s.minSalary === r.min && s.maxSalary === r.max && Math.abs(s.median - r.median) < 1e-6;
+  });
+  addCheck(sgOk, 'Salary-quartile counts, salary ranges and medians match salary_group_summary.csv',
+    QS.map(function (q) { return q + ': n = ' + SG[q].n + ', median ' + fmtNum(SG[q].median, 2) + '%'; }).join(' · '));
+  addCheck(Math.abs(FIT.b - R_REF.slopePerDollar) < 5e-8 && Math.abs(FIT.a - R_REF.intercept) < 0.005,
+    'Linear-fit slope matches R lm(): ' + (FIT.b * 1e4).toFixed(3) + ' percentage points per $10,000',
+    'Slope ' + FIT.b.toExponential(4) + ' per dollar (R: 1.517e-04) · intercept ' + FIT.a.toFixed(2) + ' (R: 70.45)');
+  addCheck(Math.abs(FIT.r2 - R_REF.r2) < 6e-6,
+    'R² matches R: ' + FIT.r2.toFixed(4) + ' (about ' + Math.round(FIT.r2 * 100) + '% of variation)',
+    'Computed ' + FIT.r2.toFixed(5) + ' · R "Multiple R-squared" 0.05945');
+  addCheck(peakQ === 'Q3' && !monotone, 'Median retention peaks in ' + peakQ + ', not in the top salary quartile',
+    QS.map(function (q) { return q + ' ' + fmtPct(SG[q].median); }).join(' → '));
+  var fgOk = QS.every(function (q) {
+    var r = R_REF.fteGroups[q], s = FG[q];
+    return s.n === r.n && Math.abs(s.minFte - r.min) < 1e-9 && Math.abs(s.maxFte - r.max) < 1e-9;
+  });
+  addCheck(fgOk, 'Teacher FTE quartiles (bubble colors) match fte_color_groups.csv',
+    'Cut points ' + fteCuts.map(function (v) { return fmtNum(v, 1); }).join(' / ') + ' FTE · counts ' + QS.map(function (q) { return FG[q].n; }).join(' / '));
+  var thrOk = QS.every(function (q) {
+    return Math.abs(100 * atOrBelow(q, 90) / EV[q].length - R_REF.salaryGroups[q].atOrBelow90) < 1e-6;
+  });
+  addCheck(thrOk, 'Share of districts at or below 90% retention matches salary_group_summary.csv',
+    QS.map(function (q) { return q + ' ' + fmtNum(100 * atOrBelow(q, 90) / EV[q].length, 1) + '% (' + atOrBelow(q, 90) + ' of ' + EV[q].length + ')'; }).join(' · '));
+  var allOk = checks.every(function (c) { return c.ok; });
+
+  // ---------------------------------------------------------------------------
+  // Text: takeaway, tiles, notes, checks
+  // ---------------------------------------------------------------------------
+  document.querySelectorAll('[data-fill="n"]').forEach(function (n) { n.textContent = N.toLocaleString('en-US'); });
+
+  var slopeTxt = round(FIT.per10k, 1).toFixed(1);
+  var r2Pct = Math.round(FIT.r2 * 100);
+
+  // Supporting figures for the interpretation, all computed from the CSV.
+  function olsFit(list) {
+    var n = list.length, sx = 0, sy = 0, xx = 0, xy = 0, yy = 0, e = 0;
+    list.forEach(function (d) { sx += d.salary; sy += d.ret; });
+    var mx2 = sx / n, my2 = sy / n;
+    list.forEach(function (d) {
+      xx += (d.salary - mx2) * (d.salary - mx2); xy += (d.salary - mx2) * (d.ret - my2); yy += (d.ret - my2) * (d.ret - my2);
+    });
+    var b = xy / xx, a = my2 - b * mx2;
+    list.forEach(function (d) { var r = d.ret - a - b * d.salary; e += r * r; });
+    return { per10k: b * 1e4, r2: 1 - e / yy, n: n };
+  }
+  function median(arr) { return q7(sortNum(arr), 0.5); }
+  function rets(list) { return list.map(function (d) { return d.ret; }); }
+  function signed(v, d) { var r = round(v, d); return (r > 0 ? '+' : r < 0 ? '−' : '') + fmtNum(Math.abs(v), d); }
+  var UPPER = ['Q2', 'Q3', 'Q4'];
+  var upperFit = olsFit(D.filter(function (d) { return d.sg !== 'Q1'; }));
+  var upperMeds = UPPER.map(function (q) { return SG[q].median; });
+  var upperMedMin = Math.min.apply(null, upperMeds), upperMedMax = Math.max.apply(null, upperMeds);
+  var upperIqr = UPPER.map(function (q) { return SG[q].p75 - SG[q].p25; });
+  var at80 = {};
+  QS.forEach(function (q) { at80[q] = 100 * atOrBelow(q, 80) / EV[q].length; });
+  var upperAt80 = UPPER.map(function (q) { return at80[q]; });
+  // Charter status is read from the DESE district name.
+  D.forEach(function (d) { d.charter = /charter/i.test(d.name); });
+  var CH = D.filter(function (d) { return d.charter; }), NC = D.filter(function (d) { return !d.charter; });
+  var below70 = D.filter(function (d) { return d.ret < 70; });
+  var chBelow70 = below70.filter(function (d) { return d.charter; }).length;
+  var chQ1 = SG.Q1.members.filter(function (d) { return d.charter; }).length;
+  var q1NonCharterMed = median(rets(SG.Q1.members.filter(function (d) { return !d.charter; })));
+  var ncFit = olsFit(NC);
+  var resid = D.map(function (d) { return d.ret - fitAt(d.salary); });
+  var medAbsResid = median(resid.map(Math.abs));
+  var farBelow = D.filter(function (d, i) { return resid[i] < -15; });
+  var farCharter = farBelow.filter(function (d) { return d.charter; }).length;
+
+  var findings = [
+    { t: 'A weak link overall', href: '#scatter-h', fig: 'Figure 1',
+      p: 'A $10,000 higher average salary goes with about ' + slopeTxt + ' percentage points higher fitted retention, and salary explains about ' +
+        r2Pct + '% of the variation between districts. Districts with similar pay often have very different retention.' },
+    { t: 'The gap is at the bottom of the pay scale', href: '#box-h', fig: 'Figure 2',
+      p: 'Median retention is ' + fmtPct(SG.Q1.median) + ' in the lowest-paying quarter of districts and ' + fmtPct(upperMedMin) + ' to ' +
+        fmtPct(upperMedMax) + ' in the other three' + (peakQ !== 'Q4' ? ', highest in ' + peakQ + ' rather than Q4' : '') +
+        '. Among districts paying more than ' + fmtUSD(SG.Q1.maxSalary) + ', the fitted slope is ' + signed(upperFit.per10k, 1) +
+        ' points per $10,000' + (Math.abs(upperFit.per10k) < 1 ? ', essentially flat.' : '.') },
+    { t: 'Very low retention clusters among low payers', href: '#ecdf-h', fig: 'Figure 3',
+      p: fmtPct(at80.Q1, 0) + ' of Q1 districts are at or below 80% retention, compared with ' + fmtPct(Math.min.apply(null, upperAt80), 0) +
+        ' to ' + fmtPct(Math.max.apply(null, upperAt80), 0) + ' in the other quartiles.' },
+    { t: 'Charter schools are a large part of the gap', href: '#scatter-h', fig: 'Figure 1',
+      p: 'The ' + CH.length + ' districts with “Charter” in their name have median retention of ' + fmtPct(median(rets(CH))) + ', versus ' +
+        fmtPct(median(rets(NC))) + ' for the rest. They make up ' + chQ1 + ' of the ' + SG.Q1.n + ' Q1 districts and ' + chBelow70 + ' of the ' +
+        below70.length + ' districts below 70%. Without them, the Q1 median rises to ' + fmtPct(q1NonCharterMed) +
+        ', though pay and retention still move together (' + signed(ncFit.per10k, 1) + ' points per $10,000).' }
+  ];
+  var findingsEl = document.getElementById('findings');
+  findings.forEach(function (f) {
+    var art = html('article', 'finding', null, findingsEl);
+    html('h3', null, f.t, art);
+    html('p', null, f.p, art);
+    var a = html('a', 'fig-link', 'See ' + f.fig, art);
+    a.href = f.href;
+  });
+  document.getElementById('caveat').textContent =
+    'These are district-level associations from one year of data. They do not show that raising salaries would raise retention, and they do not describe individual teachers.';
+
+  function setInsight(id, text) {
+    var p = document.getElementById(id);
+    p.textContent = '';
+    html('strong', null, 'What this shows: ', p);
+    p.appendChild(document.createTextNode(text));
+  }
+  setInsight('insight-scatter', 'The line rises gently, but districts with similar pay differ widely. Half of districts sit within ' +
+    fmtNum(medAbsResid, 1) + ' points of the line. The ' + farBelow.length + ' districts more than 15 points below it are mostly small (median ' +
+    fmtNum(median(farBelow.map(function (d) { return d.fte; })), 0) + ' teacher FTE, versus ' + fmtNum(median(D.map(function (d) { return d.fte; })), 0) +
+    ' overall), and ' + farCharter + ' of them are charter schools.');
+  setInsight('insight-box', 'Q1 sits lower and spreads wider than the other quartiles: its middle 50% spans ' + fmtNum(SG.Q1.p75 - SG.Q1.p25, 1) +
+    ' points, versus ' + fmtNum(Math.min.apply(null, upperIqr), 1) + ' to ' + fmtNum(Math.max.apply(null, upperIqr), 1) +
+    ' points in Q2–Q4. The Q2–Q4 medians are within ' + fmtNum(upperMedMax - upperMedMin, 1) + ' points of each other.');
+  // Line-shape statements below were checked against the CSV on a 0.1-point grid.
+  setInsight('insight-ecdf', 'The Q1 line sits above the others from about 45% to 91% retention, so at almost any cutoff a larger share of low-paying districts falls at or below it. Q3 sits furthest right between about 66% and 90%, and Q2 and Q4 stay within about 6 points of each other up to 89%.');
+
+  var tiles = [
+    { v: '+' + slopeTxt + ' pp', l: 'Fitted retention per $10,000 higher average salary' },
+    { v: r2Pct + '%', l: 'Share of variation in retention explained by salary (R² = ' + FIT.r2.toFixed(3) + ')' },
+    { v: fmtPct(SG[lowQ].median), l: 'Lowest median retention, in ' + lowQ + ' (' + fmtUSD(SG[lowQ].minSalary) + '–' + fmtUSD(SG[lowQ].maxSalary) + ')' },
+    { v: fmtPct(SG[peakQ].median), l: 'Highest median retention, in ' + peakQ + ' (' + fmtUSD(SG[peakQ].minSalary) + '–' + fmtUSD(SG[peakQ].maxSalary) + ')' }
+  ];
+  var tilesEl = document.getElementById('tiles');
+  tiles.forEach(function (t) {
+    var d = html('div', 'tile', null, tilesEl);
+    html('div', 'value', t.v, d);
+    html('div', 'label', t.l, d);
+  });
+
+  var badge = document.getElementById('verify-badge');
+  badge.classList.add(allOk ? 'ok' : 'bad');
+  html('span', 'mark', allOk ? '✓' : '⚠', badge);
+  html('span', null, allOk
+    ? 'All ' + checks.length + ' figures verified against the CSV'
+    : checks.filter(function (c) { return !c.ok; }).length + ' check(s) differ from the R analysis', badge);
+
+  var checksEl = document.getElementById('checks');
+  checks.forEach(function (c) {
+    var li = html('li', c.ok ? 'pass' : 'fail', null, checksEl);
+    var mk = html('span', 'mark', c.ok ? '✓' : '✕', li);
+    mk.setAttribute('role', 'img'); mk.setAttribute('aria-label', c.ok ? 'Pass' : 'Fail');
+    var body = html('span', null, null, li);
+    html('span', null, c.label, body);
+    html('span', 'detail', c.detail, body);
+  });
+
+  var extremes = D.filter(function (d) { return d.ret < 50 || d.ret === 100; });
+  var extremeMaxFte = Math.max.apply(null, extremes.map(function (d) { return d.fte; }));
+  var notes = [
+    'The fit is unweighted: a district with ' + fmtNum(D.reduce(function (m, d) { return Math.min(m, d.fte); }, Infinity), 1) +
+      ' teacher FTE counts as much as one with ' + fmtNum(maxFte, 1) + '. Bubble size shows district size but does not change the line.',
+    'Small districts swing the most. All ' + extremes.length + ' districts below 50% or at 100% retention have ' +
+      fmtNum(extremeMaxFte, 0) + ' or fewer teacher FTE, where a few departures move the rate a lot.',
+    'Pay is tangled up with other differences between districts, such as district type, location and cost of living. The charter pattern is one example, so the data do not show that salary itself drives retention.',
+    'Salary is from 2023–24 and retention from the 2025 DESE report. Both describe districts, not individual teachers.'
+  ];
+  var notesEl = document.getElementById('notes');
+  notes.forEach(function (t) { html('li', null, t, notesEl); });
+
+  // Salary-quartile summary table (beneath the box plot)
+  var gtb = document.querySelector('#group-table tbody');
+  QS.forEach(function (q, i) {
+    var g = SG[q];
+    var tr = html('tr', q === peakQ ? 'peak' : null, null, gtb);
+    var c1 = html('td', null, q, tr);
+    if (i === 0 || i === 3) html('span', 'opt', i === 0 ? ' (lowest)' : ' (highest)', c1);
+    html('td', null, fmtUSD(g.minSalary) + '–' + fmtUSD(g.maxSalary), tr);
+    html('td', 'num', String(g.n), tr);
+    var c4 = html('td', 'num', fmtPct(g.median), tr);
+    if (q === peakQ) html('span', 'opt', ' (highest)', c4);
+    html('td', 'num opt', fmtPct(g.p25) + '–' + fmtPct(g.p75), tr);
+  });
+
+  // Datalist
+  var dl = document.getElementById('district-list');
+  D.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (d) {
+    var o = document.createElement('option'); o.value = d.name; dl.appendChild(o);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Shared state
+  // ---------------------------------------------------------------------------
+  var state = { query: '', matches: null, selected: null, hover: null };
+  var byId = {};
+  D.forEach(function (d) { byId[d.id] = d; });
+
+  // ---------------------------------------------------------------------------
+  // Tooltip
+  // ---------------------------------------------------------------------------
+  var tip = document.getElementById('tooltip');
+  function showTip(d, clientX, clientY) {
+    tip.textContent = '';
+    html('div', 'tt-name', d.name, tip);
+    var dlEl = html('dl', 'tt-rows', null, tip);
+    function row(k, v, aside, keyClass) {
+      html('dt', null, k, dlEl);
+      var dd = html('dd', null, null, dlEl);
+      if (keyClass) { var key = html('span', 'tt-key', null, dd); key.style.background = 'var(--fte-' + keyClass + ')'; }
+      dd.appendChild(document.createTextNode(v));
+      if (aside) html('span', 'aside', ' ' + aside, dd);
+    }
+    var g = SG[d.sg];
+    row('Average salary', fmtUSD(d.salary));
+    row('Retention rate', fmtPct(d.ret));
+    row('Teacher FTE', fmtNum(d.fte, 1), '(' + d.fq + ' by size)', d.fq.slice(1));
+    row('Salary quartile', d.sg, '(' + fmtUSD(g.minSalary) + '–' + fmtUSD(g.maxSalary) + ')');
+    tip.hidden = false;
+    placeTip(clientX, clientY);
+  }
+  function showGroupTip(g, clientX, clientY) {
+    tip.textContent = '';
+    html('div', 'tt-name', g.q + ' salary quartile', tip);
+    var dlEl = html('dl', 'tt-rows', null, tip);
+    [['Salary range', fmtUSD(g.minSalary) + '–' + fmtUSD(g.maxSalary)],
+     ['Districts', String(g.n)],
+     ['Median retention', fmtPct(g.median)],
+     ['Middle 50%', fmtPct(g.p25) + '–' + fmtPct(g.p75)]].forEach(function (r) {
+      html('dt', null, r[0], dlEl); html('dd', null, r[1], dlEl);
+    });
+    tip.hidden = false;
+    placeTip(clientX, clientY);
+  }
+  function placeTip(x, y) {
+    var w = tip.offsetWidth, h = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+    var left = x + 14, top = y + 14;
+    if (left + w > vw - 8) left = x - w - 14;
+    if (left < 8) left = clamp(x - w / 2, 8, vw - w - 8);
+    if (top + h > vh - 8) top = y - h - 14;
+    if (top < 8) top = 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
+
+  // ---------------------------------------------------------------------------
+  // Scatterplot
+  // ---------------------------------------------------------------------------
+  var FULL = { x: [40000, 170000], y: [25, 102.5] };
+  var S = { view: { x: FULL.x.slice(), y: FULL.y.slice() }, k: 1 };
+  var scatterEl = document.getElementById('scatter');
+  var legendEl = document.getElementById('scatter-legend');
+
+  function rFor(fte) { return Math.max(1.7, S.rMax * Math.sqrt(fte / maxFte)); }
+
+  function buildScatter() {
+    var w = scatterEl.clientWidth;
+    if (!w) return;
+    var small = w < 560;
+    S.w = w;
+    S.h = Math.round(clamp(w * 0.58, 340, 560));
+    S.m = { t: 30, r: small ? 10 : 18, b: 48, l: small ? 40 : 48 };
+    S.pw = S.w - S.m.l - S.m.r;
+    S.ph = S.h - S.m.t - S.m.b;
+    S.rMax = clamp(w * 0.024, 11, 26);
+    S.small = small;
+
+    scatterEl.textContent = '';
+    var svg = el('svg', {
+      viewBox: '0 0 ' + S.w + ' ' + S.h, width: S.w, height: S.h, tabindex: '0',
+      role: 'group', 'aria-roledescription': 'interactive scatterplot',
+      'aria-label': 'Scatterplot of ' + N + ' districts: average teacher salary on the horizontal axis, teacher retention rate on the vertical axis, bubble size by teacher FTE, with a linear fit line.'
+    }, scatterEl);
+    S.svg = svg;
+    var defs = el('defs', null, svg);
+    var cp = el('clipPath', { id: 'plot-clip' }, defs);
+    el('rect', { x: 0, y: 0, width: S.pw, height: S.ph }, cp);
+
+    var root = el('g', { transform: 'translate(' + S.m.l + ',' + S.m.t + ')' }, svg);
+    S.gridG = el('g', { class: 'grid' }, root);
+    S.axisG = el('g', null, root);
+    var plot = el('g', { 'clip-path': 'url(#plot-clip)' }, root);
+    S.bubbleG = el('g', null, plot);
+    S.fitG = el('g', null, plot);
+    S.selG = el('g', null, plot);
+    S.labelG = el('g', null, root);
+
+    // axis titles
+    el('text', { class: 'axis-title', x: S.pw / 2, y: S.ph + 42, 'text-anchor': 'middle' }, root).textContent = 'Average annual teacher salary';
+    el('text', { class: 'axis-title', x: -S.m.l, y: -16, 'text-anchor': 'start' }, root).textContent = 'Teachers retained (%)';
+
+    // bubbles, largest first so small districts sit on top
+    S.nodes = {};
+    D.slice().sort(function (a, b) { return b.fte - a.fte; }).forEach(function (d) {
+      var c = el('circle', { class: 'bubble fq' + d.fq.slice(1), r: rFor(d.fte) }, S.bubbleG);
+      S.nodes[d.id] = c;
+    });
+
+    // fit line + label
+    S.fitHalo = el('line', { class: 'fit-halo' }, S.fitG);
+    S.fitLine = el('line', { class: 'fit-line' }, S.fitG);
+    S.fitLabel = el('text', { class: 'fit-label' }, S.labelG);
+
+    S.selRing = el('circle', { class: 'sel-ring' }, S.selG);
+    S.selLabel = el('text', { class: 'sel-label' }, S.labelG);
+
+    bindScatterEvents(svg);
+    buildLegend();
+    updateScatter();
+  }
+
+  function sx(v) { return (v - S.view.x[0]) / (S.view.x[1] - S.view.x[0]) * S.pw; }
+  function sy(v) { return S.ph - (v - S.view.y[0]) / (S.view.y[1] - S.view.y[0]) * S.ph; }
+  function ix(p) { return S.view.x[0] + p / S.pw * (S.view.x[1] - S.view.x[0]); }
+  function iy(p) { return S.view.y[0] + (S.ph - p) / S.ph * (S.view.y[1] - S.view.y[0]); }
+
+  function clipSegment(x0, y0, x1, y1, xmin, xmax, ymin, ymax) { // Liang–Barsky
+    var t0 = 0, t1 = 1, dx = x1 - x0, dy = y1 - y0;
+    var p = [-dx, dx, -dy, dy], q = [x0 - xmin, xmax - x0, y0 - ymin, ymax - y0];
+    for (var i = 0; i < 4; i++) {
+      if (p[i] === 0) { if (q[i] < 0) return null; continue; }
+      var t = q[i] / p[i];
+      if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+      else { if (t < t0) return null; if (t < t1) t1 = t; }
+    }
+    return [x0 + t0 * dx, y0 + t0 * dy, x0 + t1 * dx, y0 + t1 * dy];
+  }
+
+  function updateScatter() {
+    if (!S.svg) return;
+    // grid + ticks
+    S.gridG.textContent = ''; S.axisG.textContent = '';
+    var yt = niceTicks(Math.max(S.view.y[0], 0), Math.min(S.view.y[1], 100), Math.max(3, Math.round(S.ph / 55)));
+    yt.forEach(function (v) {
+      var y = sy(v);
+      if (y < -0.5 || y > S.ph + 0.5) return;
+      el('line', { x1: 0, x2: S.pw, y1: y, y2: y }, S.gridG);
+      var t = el('text', { class: 'tick', x: -8, y: y, dy: '0.32em', 'text-anchor': 'end' }, S.axisG);
+      t.textContent = (Number.isInteger(v) ? v : round(v, 1)) + '%';
+    });
+    el('line', { class: 'baseline', x1: 0, x2: S.pw, y1: S.ph, y2: S.ph }, S.axisG);
+    var xt = niceTicks(S.view.x[0], S.view.x[1], Math.max(3, Math.round(S.pw / (S.small ? 80 : 110))));
+    xt.forEach(function (v) {
+      var x = sx(v);
+      if (x < -0.5 || x > S.pw + 0.5) return;
+      var t = el('text', { class: 'tick', x: x, y: S.ph + 18, 'text-anchor': 'middle' }, S.axisG);
+      t.textContent = fmtUSDk(v);
+    });
+
+    // bubbles
+    D.forEach(function (d) {
+      var c = S.nodes[d.id];
+      c.setAttribute('cx', sx(d.salary).toFixed(2));
+      c.setAttribute('cy', sy(d.ret).toFixed(2));
+    });
+
+    // fit line: drawn over the observed salary range, clipped to the view
+    var xs0 = Math.min.apply(null, D.map(function (d) { return d.salary; }));
+    var xs1 = Math.max.apply(null, D.map(function (d) { return d.salary; }));
+    var seg = clipSegment(sx(xs0), sy(fitAt(xs0)), sx(xs1), sy(fitAt(xs1)), 0, S.pw, 0, S.ph);
+    [S.fitHalo, S.fitLine].forEach(function (ln) {
+      if (!seg) { ln.setAttribute('visibility', 'hidden'); return; }
+      ln.removeAttribute('visibility');
+      ln.setAttribute('x1', seg[0]); ln.setAttribute('y1', seg[1]);
+      ln.setAttribute('x2', seg[2]); ln.setAttribute('y2', seg[3]);
+    });
+    if (seg && Math.hypot(seg[2] - seg[0], seg[3] - seg[1]) > 120) {
+      var label = S.w >= 720 ? 'Linear fit: +' + FIT.per10k.toFixed(2) + ' pp per $10,000' : 'Linear fit';
+      S.fitLabel.textContent = label;
+      var lx = seg[2] - 6, ly = seg[3] - 10;
+      S.fitLabel.setAttribute('x', lx);
+      S.fitLabel.setAttribute('y', Math.max(14, ly));
+      S.fitLabel.setAttribute('text-anchor', 'end');
+      S.fitLabel.removeAttribute('visibility');
+    } else {
+      S.fitLabel.setAttribute('visibility', 'hidden');
+    }
+
+    applyHighlight();
+    document.getElementById('zoom-level').textContent = (S.k < 10 ? round(S.k, 1) : Math.round(S.k)) + '×';
+    document.getElementById('zoom-out').disabled = S.k <= 1.0001;
+    document.getElementById('zoom-reset').disabled = S.k <= 1.0001;
+    S.svg.style.touchAction = S.k > 1.0001 ? 'none' : 'auto';
+    S.svg.style.cursor = S.k > 1.0001 ? 'grab' : 'default';
+  }
+
+  function buildLegend() {
+    legendEl.textContent = '';
+    var block = html('div', null, null, legendEl);
+    html('p', 'legend-title', 'District size (teacher FTE)', block);
+    html('p', 'legend-note', 'Bubble area is proportional to teacher FTE; color marks the FTE quartile.', block);
+    var ul = html('ul', 'legend-items', null, block);
+    QS.forEach(function (q) {
+      var g = FG[q];
+      var li = html('li', null, null, ul);
+      var r = rFor(g.medFte), box = Math.max(2 * r + 2, 14);
+      var s = el('svg', { width: box, height: box, viewBox: '0 0 ' + box + ' ' + box, 'aria-hidden': 'true' }, li);
+      el('circle', { class: 'bubble fq' + q.slice(1), cx: box / 2, cy: box / 2, r: r }, s);
+      var t = html('span', null, null, li);
+      html('span', 'q', q + ' ', t);
+      html('span', 'range', fmtNum(g.minFte, 1) + '–' + fmtNum(g.maxFte, 1) + ' FTE (n = ' + g.n + ')', t);
+    });
+    var fk = html('div', 'fit-key', null, legendEl);
+    var s2 = el('svg', { width: 28, height: 6, viewBox: '0 0 28 6', 'aria-hidden': 'true' }, fk);
+    el('line', { class: 'fit-line', x1: 2, x2: 26, y1: 3, y2: 3 }, s2);
+    var txt = html('div', null, null, fk);
+    html('strong', null, 'Linear fit (unweighted, all ' + N + ' districts)', txt);
+    txt.appendChild(document.createElement('br'));
+    html('span', null, 'Slope +' + FIT.per10k.toFixed(2) + ' percentage points per $10,000 · R² = ' + FIT.r2.toFixed(3) +
+      ' (' + fmtPct(FIT.r2 * 100) + ' of the variation). Stays fixed when you search or zoom.', txt);
+  }
+
+  // Zoom / pan
+  function setView(x0, x1, y0, y1) {
+    var fw = FULL.x[1] - FULL.x[0], fh = FULL.y[1] - FULL.y[0];
+    var w = x1 - x0, h = y1 - y0;
+    if (x0 < FULL.x[0]) { x0 = FULL.x[0]; x1 = x0 + w; }
+    if (x1 > FULL.x[1]) { x1 = FULL.x[1]; x0 = x1 - w; }
+    if (y0 < FULL.y[0]) { y0 = FULL.y[0]; y1 = y0 + h; }
+    if (y1 > FULL.y[1]) { y1 = FULL.y[1]; y0 = y1 - h; }
+    S.view.x = [x0, x1]; S.view.y = [y0, y1];
+    S.k = fw / w;
+  }
+  function zoomAround(factor, cx, cy) {
+    var k = clamp(S.k * factor, 1, 24);
+    var f = S.k / k;
+    var vx = S.view.x, vy = S.view.y;
+    var fw = FULL.x[1] - FULL.x[0], fh = FULL.y[1] - FULL.y[0];
+    if (k <= 1.0001) { setView(FULL.x[0], FULL.x[1], FULL.y[0], FULL.y[1]); S.k = 1; updateScatter(); return; }
+    var x0 = cx - (cx - vx[0]) * f, x1 = x0 + fw / k;
+    var y0 = cy - (cy - vy[0]) * f, y1 = y0 + fh / k;
+    setView(x0, x1, y0, y1);
+    updateScatter();
+  }
+  function zoomCenter() {
+    var d = state.selected;
+    if (d) return [d.salary, d.ret];
+    return [(S.view.x[0] + S.view.x[1]) / 2, (S.view.y[0] + S.view.y[1]) / 2];
+  }
+  function zoomButton(factor) {
+    var c = zoomCenter();
+    var d = state.selected;
+    if (d && factor > 1) {
+      // center the selected district, then zoom
+      var k = clamp(S.k * factor, 1, 24);
+      var fw = (FULL.x[1] - FULL.x[0]) / k, fh = (FULL.y[1] - FULL.y[0]) / k;
+      setView(d.salary - fw / 2, d.salary + fw / 2, d.ret - fh / 2, d.ret + fh / 2);
+      updateScatter();
+      return;
+    }
+    zoomAround(factor, c[0], c[1]);
+  }
+  function resetZoom() {
+    setView(FULL.x[0], FULL.x[1], FULL.y[0], FULL.y[1]); S.k = 1; updateScatter();
+  }
+  function ensureVisible(d) {
+    if (!S.svg || S.k <= 1.0001) return;
+    if (d.salary < S.view.x[0] || d.salary > S.view.x[1] || d.ret < S.view.y[0] || d.ret > S.view.y[1]) {
+      var w = S.view.x[1] - S.view.x[0], h = S.view.y[1] - S.view.y[0];
+      setView(d.salary - w / 2, d.salary + w / 2, d.ret - h / 2, d.ret + h / 2);
+      updateScatter();
+    }
+  }
+
+  function nearestBubble(px, py) {
+    var best = null, bestScore = Infinity;
+    D.forEach(function (d) {
+      if (state.matches && !state.matches[d.id]) return;
+      var x = sx(d.salary), y = sy(d.ret), r = rFor(d.fte);
+      var dist = Math.hypot(px - x, py - y);
+      var reach = Math.max(r, 12);
+      if (dist > reach) return;
+      var score = dist / reach + (r > 12 ? 0.25 : 0); // prefer small bubbles drawn on top
+      if (score < bestScore) { bestScore = score; best = d; }
+    });
+    return best;
+  }
+
+  function bindScatterEvents(svg) {
+    var drag = null;
+    function local(e) {
+      var b = svg.getBoundingClientRect();
+      return [(e.clientX - b.left) * (S.w / b.width) - S.m.l, (e.clientY - b.top) * (S.h / b.height) - S.m.t];
+    }
+    svg.addEventListener('pointerdown', function (e) {
+      var p = local(e);
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, px: p[0], py: p[1], vx: S.view.x.slice(), vy: S.view.y.slice(), moved: false, type: e.pointerType };
+      if (S.k > 1.0001) { svg.setPointerCapture(e.pointerId); svg.style.cursor = 'grabbing'; }
+    });
+    svg.addEventListener('pointermove', function (e) {
+      var p = local(e);
+      if (drag && drag.id === e.pointerId && S.k > 1.0001) {
+        var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+        if (Math.hypot(dx, dy) > 4) drag.moved = true;
+        if (drag.moved) {
+          var b = svg.getBoundingClientRect(), scaleX = S.w / b.width;
+          var ddx = dx * scaleX / S.pw * (drag.vx[1] - drag.vx[0]);
+          var ddy = dy * scaleX / S.ph * (drag.vy[1] - drag.vy[0]);
+          setView(drag.vx[0] - ddx, drag.vx[1] - ddx, drag.vy[0] + ddy, drag.vy[1] + ddy);
+          updateScatter();
+          hideTip(); setHover(null);
+          return;
+        }
+      }
+      if (e.pointerType === 'mouse') {
+        var d = (p[0] >= 0 && p[0] <= S.pw && p[1] >= 0 && p[1] <= S.ph) ? nearestBubble(p[0], p[1]) : null;
+        setHover(d);
+        if (d) showTip(d, e.clientX, e.clientY); else hideTip();
+      }
+    });
+    function end(e) {
+      if (!drag || drag.id !== e.pointerId) return;
+      var wasDrag = drag.moved;
+      var t = drag.type;
+      drag = null;
+      svg.style.cursor = S.k > 1.0001 ? 'grab' : 'default';
+      if (wasDrag || e.type === 'pointercancel') return;
+      var p = local(e);
+      var d = (p[0] >= 0 && p[0] <= S.pw && p[1] >= 0 && p[1] <= S.ph) ? nearestBubble(p[0], p[1]) : null;
+      if (d) {
+        select(d, { fromChart: true });
+        setHover(d);
+        showTip(d, e.clientX, e.clientY);
+      } else {
+        setHover(null); hideTip();
+      }
+    }
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', end);
+    svg.addEventListener('pointerleave', function (e) {
+      if (e.pointerType === 'mouse' && !drag) { setHover(null); hideTip(); }
+    });
+    svg.addEventListener('wheel', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      var p = local(e);
+      zoomAround(Math.exp(clamp(-e.deltaY, -40, 40) * 0.01), ix(p[0]), iy(p[1]));
+    }, { passive: false });
+    svg.addEventListener('dblclick', function (e) {
+      var p = local(e);
+      zoomAround(2, ix(p[0]), iy(p[1]));
+    });
+    svg.addEventListener('keydown', function (e) {
+      var order = D.slice().sort(function (a, b) { return a.salary - b.salary || a.ret - b.ret; });
+      if (state.matches) order = order.filter(function (d) { return state.matches[d.id]; });
+      if (!order.length) return;
+      var idx = state.selected ? order.indexOf(state.selected) : -1;
+      var next = null;
+      if (e.key === 'ArrowRight') next = order[idx < 0 ? 0 : Math.min(order.length - 1, idx + 1)];
+      else if (e.key === 'ArrowLeft') next = order[idx < 0 ? order.length - 1 : Math.max(0, idx - 1)];
+      else if (e.key === 'Home') next = order[0];
+      else if (e.key === 'End') next = order[order.length - 1];
+      else if (e.key === '+' || e.key === '=') { zoomButton(1.6); e.preventDefault(); return; }
+      else if (e.key === '-' || e.key === '_') { zoomButton(1 / 1.6); e.preventDefault(); return; }
+      else if (e.key === '0') { resetZoom(); e.preventDefault(); return; }
+      else if (e.key === 'Escape') { clearSearch(); hideTip(); return; }
+      if (next) {
+        e.preventDefault();
+        select(next, { fromChart: true });
+        ensureVisible(next);
+        var b = svg.getBoundingClientRect(), f = b.width / S.w;
+        showTip(next, b.left + (S.m.l + sx(next.salary)) * f, b.top + (S.m.t + sy(next.ret)) * f);
+      }
+    });
+    svg.addEventListener('blur', function () { hideTip(); setHover(null); });
+  }
+
+  function setHover(d) {
+    if (state.hover === d) return;
+    if (state.hover) {
+      if (S.nodes && S.nodes[state.hover.id]) S.nodes[state.hover.id].classList.remove('is-hover');
+      if (B.nodes && B.nodes[state.hover.id]) B.nodes[state.hover.id].classList.remove('is-hover');
+    }
+    state.hover = d;
+    if (d) {
+      if (S.nodes && S.nodes[d.id]) S.nodes[d.id].classList.add('is-hover');
+      if (B.nodes && B.nodes[d.id]) B.nodes[d.id].classList.add('is-hover');
+    }
+  }
+
+  function placeSelLabel(textEl, x, y, r, plotW) {
+    var right = x < plotW * 0.62;
+    textEl.setAttribute('text-anchor', right ? 'start' : 'end');
+    textEl.setAttribute('x', right ? x + r + 6 : x - r - 6);
+    textEl.setAttribute('y', y - r - 4 < 14 ? y + r + 16 : y - r - 4);
+  }
+
+  function applyHighlight() {
+    var m = state.matches, sel = state.selected;
+    if (S.nodes) {
+      D.forEach(function (d) { S.nodes[d.id].classList.toggle('dim', !!(m && !m[d.id])); });
+      if (sel) {
+        var x = sx(sel.salary), y = sy(sel.ret), r = rFor(sel.fte);
+        S.selRing.setAttribute('cx', x); S.selRing.setAttribute('cy', y); S.selRing.setAttribute('r', r + 3);
+        S.selRing.removeAttribute('visibility');
+        var inView = x >= 0 && x <= S.pw && y >= 0 && y <= S.ph;
+        S.selLabel.textContent = truncate(sel.name, S.small ? 26 : 44);
+        placeSelLabel(S.selLabel, x, y, r, S.pw);
+        if (inView) S.selLabel.removeAttribute('visibility'); else S.selLabel.setAttribute('visibility', 'hidden');
+        // keep the selected bubble on top
+        S.bubbleG.appendChild(S.nodes[sel.id]);
+      } else {
+        S.selRing.setAttribute('visibility', 'hidden');
+        S.selLabel.setAttribute('visibility', 'hidden');
+      }
+    }
+    if (B.nodes) {
+      D.forEach(function (d) {
+        var n = B.nodes[d.id];
+        n.classList.toggle('dim', !!(m && !m[d.id]));
+        n.classList.toggle('is-selected', sel === d);
+      });
+      if (sel && B.selRing) {
+        var bx = B.xOf(sel), by = B.y(sel.ret);
+        B.selRing.setAttribute('cx', bx); B.selRing.setAttribute('cy', by); B.selRing.setAttribute('r', B.r + 3);
+        B.selRing.removeAttribute('visibility');
+        B.selLabel.textContent = truncate(sel.name, B.small ? 22 : 40);
+        var bandIdx = QS.indexOf(sel.sg);
+        placeSelLabel(B.selLabel, bx, by, B.r, B.pw * (bandIdx < 2 ? 1 : 0.0));
+        B.dotG.appendChild(B.nodes[sel.id]);
+      } else if (B.selRing) {
+        B.selRing.setAttribute('visibility', 'hidden');
+        B.selLabel.textContent = '';
+      }
+    }
+    if (E && E.svg) drawEcdfSelection();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Boxplot
+  // ---------------------------------------------------------------------------
+  var B = {};
+  var boxEl = document.getElementById('boxplot');
+  var jitterRand = mulberry32(42);
+  var JITTER = {};
+  QS.forEach(function (q) {
+    SG[q].members.slice().sort(function (a, b) { return a.code < b.code ? -1 : 1; }).forEach(function (d) { JITTER[d.id] = jitterRand() * 2 - 1; });
+  });
+
+  function buildBoxplot() {
+    var w = boxEl.clientWidth;
+    if (!w) return;
+    var small = w < 560;
+    B.small = small;
+    B.w = w;
+    var plotH = Math.round(clamp(w * 0.42, 300, 440));
+    B.m = { t: 30, r: small ? 6 : 16, b: 64, l: small ? 40 : 48 };
+    B.h = plotH + B.m.t + B.m.b;
+    B.pw = B.w - B.m.l - B.m.r;
+    B.ph = plotH;
+    var band = B.pw / 4;
+    B.band = band;
+    B.r = small ? 2.6 : 3.2;
+    var boxW = Math.min(band * 0.36, 70);
+    var showMedianLabel = band >= 190;
+    B.m.b = band < 110 ? 50 : showMedianLabel ? 64 : 82;
+    B.h = plotH + B.m.t + B.m.b;
+    B.y = scale(FULL.y[0], FULL.y[1], B.ph, 0);
+    B.xOf = function (d) { var i = QS.indexOf(d.sg); return band * (i + 0.5) + JITTER[d.id] * band * 0.16; };
+
+    boxEl.textContent = '';
+    var svg = el('svg', {
+      viewBox: '0 0 ' + B.w + ' ' + B.h, width: B.w, height: B.h,
+      role: 'group', 'aria-roledescription': 'interactive box plot',
+      'aria-label': 'Box plots of teacher retention for each salary quartile, Q1 to Q4, with one dot per district. Medians: ' +
+        QS.map(function (q) { return q + ' ' + fmtPct(SG[q].median); }).join(', ') + '.'
+    }, boxEl);
+    B.svg = svg;
+    var root = el('g', { transform: 'translate(' + B.m.l + ',' + B.m.t + ')' }, svg);
+    var grid = el('g', { class: 'grid' }, root);
+    var axis = el('g', null, root);
+    niceTicks(30, 100, Math.max(3, Math.round(B.ph / 55))).forEach(function (v) {
+      var y = B.y(v);
+      el('line', { x1: 0, x2: B.pw, y1: y, y2: y }, grid);
+      el('text', { class: 'tick', x: -8, y: y, dy: '0.32em', 'text-anchor': 'end' }, axis).textContent = v + '%';
+    });
+    el('text', { class: 'axis-title', x: -B.m.l, y: -16, 'text-anchor': 'start' }, root).textContent = 'Teachers retained (%)';
+    B.bandHover = el('rect', { class: 'band-hover', x: 0, y: 0, width: band, height: B.ph, visibility: 'hidden' }, root);
+
+    var boxG = el('g', null, root);
+    B.dotG = el('g', null, root);
+    var labelG = el('g', null, root);
+
+    QS.forEach(function (q, i) {
+      var g = SG[q], cx = band * (i + 0.5), x0 = cx - boxW / 2;
+      el('line', { class: 'whisker', x1: cx, x2: cx, y1: B.y(g.hi), y2: B.y(g.p75) }, boxG);
+      el('line', { class: 'whisker', x1: cx, x2: cx, y1: B.y(g.p25), y2: B.y(g.lo) }, boxG);
+      el('rect', { class: 'box', x: x0, y: B.y(g.p75), width: boxW, height: Math.max(1, B.y(g.p25) - B.y(g.p75)), rx: 3 }, boxG);
+
+      // x-axis group labels: quartile, observed salary range, count (and median when not labeled on the plot)
+      // Narrow screens keep only the quartile and count here; the summary table below carries the rest.
+      var ly = B.ph + 20, row = 0;
+      function sub(txt, bold) {
+        row++;
+        var t = el('text', { class: 'group-sub', x: cx, y: ly + row * 16.5, 'text-anchor': 'middle' }, labelG);
+        t.textContent = txt;
+        if (bold) t.setAttribute('font-weight', '700');
+      }
+      el('text', { class: 'group-label', x: cx, y: ly, 'text-anchor': 'middle' }, labelG).textContent =
+        band > 170 ? q + (i === 0 ? ' · lowest salaries' : i === 3 ? ' · highest salaries' : '') : q;
+      if (band >= 110) sub(band < 150 ? fmtUSDk(g.minSalary) + '–' + fmtUSDk(g.maxSalary) : fmtUSD(g.minSalary) + ' to ' + fmtUSD(g.maxSalary));
+      sub(band >= 150 ? g.n + ' districts' : 'n = ' + g.n);
+      if (!showMedianLabel && band >= 110) sub('Median ' + fmtPct(g.median), q === peakQ);
+    });
+
+    // dots
+    B.nodes = {};
+    D.forEach(function (d) {
+      B.nodes[d.id] = el('circle', { class: 'bdot', cx: B.xOf(d).toFixed(2), cy: B.y(d.ret).toFixed(2), r: B.r }, B.dotG);
+    });
+
+    // medians drawn above the dots so they stay readable
+    QS.forEach(function (q, i) {
+      var g = SG[q], cx = band * (i + 0.5);
+      el('line', { class: 'median-line', x1: cx - boxW / 2, x2: cx + boxW / 2, y1: B.y(g.median), y2: B.y(g.median) }, labelG);
+      if (showMedianLabel) {
+        // Q1 labels to the right so it never meets the y-axis ticks; the rest sit left of their box, as in the R chart.
+        var lx = i === 0 ? cx + boxW / 2 + 8 : cx - boxW / 2 - 8;
+        var t = el('text', { class: 'median-label', x: lx, y: B.y(g.median), 'text-anchor': i === 0 ? 'start' : 'end' }, labelG);
+        var t1 = el('tspan', { x: lx, dy: '-0.25em' }, t);
+        t1.textContent = q === peakQ ? 'Highest median' : 'Median';
+        var t2 = el('tspan', { class: 'v', x: lx, dy: '1.15em' }, t);
+        t2.textContent = fmtPct(g.median);
+      }
+    });
+
+    B.selRing = el('circle', { class: 'sel-ring', visibility: 'hidden' }, root);
+    B.selLabel = el('text', { class: 'sel-label' }, root);
+
+    function local(e) {
+      var b = svg.getBoundingClientRect();
+      return [(e.clientX - b.left) * (B.w / b.width) - B.m.l, (e.clientY - b.top) * (B.h / b.height) - B.m.t];
+    }
+    function nearestDot(px, py) {
+      var best = null, bd = Infinity;
+      D.forEach(function (d) {
+        if (state.matches && !state.matches[d.id]) return;
+        var dist = Math.hypot(px - B.xOf(d), py - B.y(d.ret));
+        if (dist < 12 && dist < bd) { bd = dist; best = d; }
+      });
+      return best;
+    }
+    function hit(e) {
+      var p = local(e);
+      if (p[0] < 0 || p[0] > B.pw || p[1] < 0 || p[1] > B.ph) return null;
+      var d = nearestDot(p[0], p[1]);
+      if (d) return { d: d };
+      var i = clamp(Math.floor(p[0] / band), 0, 3), cx = band * (i + 0.5);
+      if (Math.abs(p[0] - cx) <= Math.max(boxW / 2 + 10, band * 0.2)) return { g: SG[QS[i]], i: i };
+      return null;
+    }
+    function render(h, e) {
+      if (h && h.d) {
+        B.bandHover.setAttribute('visibility', 'hidden');
+        setHover(h.d); showTip(h.d, e.clientX, e.clientY);
+      } else if (h && h.g) {
+        setHover(null);
+        B.bandHover.setAttribute('x', h.i * band);
+        B.bandHover.removeAttribute('visibility');
+        showGroupTip(h.g, e.clientX, e.clientY);
+      } else {
+        B.bandHover.setAttribute('visibility', 'hidden');
+        setHover(null); hideTip();
+      }
+    }
+    svg.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') render(hit(e), e); });
+    svg.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') render(null, e); });
+    svg.addEventListener('pointerup', function (e) {
+      var h = hit(e);
+      if (h && h.d) select(h.d, { fromChart: true });
+      render(h, e);
+    });
+
+    applyHighlight();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search, selection, table
+  // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Cumulative distribution of retention by salary quartile
+  // ---------------------------------------------------------------------------
+  var E = { thr: 90, iso: null };
+  var E_X = [25, 100.6];           // a little past 100% so the final step at 100% stays visible
+  var ecdfEl = document.getElementById('ecdf');
+  var thrInput = document.getElementById('thr');
+  var thrOut = document.getElementById('thr-out');
+  var readoutEl = document.getElementById('ecdf-readout');
+  var ecdfLegend = document.getElementById('ecdf-legend');
+
+  function ecdfPath(q) {
+    var v = EV[q], n = v.length, i = 0;
+    var d = 'M' + E.x(E_X[0]).toFixed(2) + ',' + E.y(0).toFixed(2);
+    while (i < n) {
+      var x = v[i];
+      while (i < n && v[i] === x) i++;
+      d += 'H' + E.x(x).toFixed(2) + 'V' + E.y(i / n).toFixed(2);
+    }
+    return d + 'H' + E.x(E_X[1]).toFixed(2);
+  }
+
+  function buildEcdfLegend() {
+    ecdfLegend.textContent = '';
+    E.legendBtns = {};
+    QS.forEach(function (q, i) {
+      var li = html('li', null, null, ecdfLegend);
+      var b = html('button', 'series-btn', null, li);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', 'false');
+      var s = el('svg', { width: 30, height: 8, viewBox: '0 0 30 8', 'aria-hidden': 'true' }, b);
+      el('line', { class: 'ecdf-line sq' + (i + 1) + ' dash-q' + (i + 1), x1: 2, x2: 28, y1: 4, y2: 4 }, s);
+      var t = html('span', null, null, b);
+      html('span', 'q', q + ' ', t);
+      html('span', 'range', fmtUSD(SG[q].minSalary) + '–' + fmtUSD(SG[q].maxSalary) + ' (n = ' + SG[q].n + ')', t);
+      b.addEventListener('click', function () { E.iso = E.iso === q ? null : q; updateEcdf(); });
+      E.legendBtns[q] = b;
+    });
+  }
+
+  function buildEcdf() {
+    var w = ecdfEl.clientWidth;
+    if (!w) return;
+    var small = w < 560;
+    E.small = small;
+    E.w = w;
+    E.m = { t: 30, r: small ? 12 : 20, b: 48, l: small ? 40 : 48 };
+    E.h = Math.round(clamp(w * 0.5, 320, 480));
+    E.pw = E.w - E.m.l - E.m.r;
+    E.ph = E.h - E.m.t - E.m.b;
+    E.x = scale(E_X[0], E_X[1], 0, E.pw);
+    E.y = scale(0, 1, E.ph, 0);
+
+    ecdfEl.textContent = '';
+    var svg = el('svg', {
+      viewBox: '0 0 ' + E.w + ' ' + E.h, width: E.w, height: E.h, tabindex: '0',
+      role: 'group', 'aria-roledescription': 'interactive line chart',
+      'aria-label': 'Cumulative share of districts at or below each teacher retention rate, one line per salary quartile. Left and right arrow keys move the comparison point.'
+    }, ecdfEl);
+    E.svg = svg;
+    var root = el('g', { transform: 'translate(' + E.m.l + ',' + E.m.t + ')' }, svg);
+    var grid = el('g', { class: 'grid' }, root);
+    var axis = el('g', null, root);
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      var y = E.y(v);
+      el('line', { x1: 0, x2: E.pw, y1: y, y2: y }, grid);
+      el('text', { class: 'tick', x: -8, y: y, dy: '0.32em', 'text-anchor': 'end' }, axis).textContent = Math.round(v * 100) + '%';
+    });
+    el('line', { class: 'baseline', x1: 0, x2: E.pw, y1: E.ph, y2: E.ph }, axis);
+    niceTicks(30, 100, Math.max(3, Math.round(E.pw / (small ? 70 : 90)))).forEach(function (v) {
+      el('text', { class: 'tick', x: E.x(v), y: E.ph + 18, 'text-anchor': 'middle' }, axis).textContent = v + '%';
+    });
+    el('text', { class: 'axis-title', x: E.pw / 2, y: E.ph + 42, 'text-anchor': 'middle' }, root).textContent = 'Teacher retention rate (%)';
+    el('text', { class: 'axis-title', x: -E.m.l, y: -16, 'text-anchor': 'start' }, root).textContent = 'Cumulative share of districts (%)';
+
+    E.thrG = el('g', null, root);
+    E.cross = el('line', { class: 'crosshair', y1: 0, y2: E.ph, visibility: 'hidden' }, root);
+    E.lines = {};
+    QS.forEach(function (q, i) {
+      E.lines[q] = el('path', { class: 'ecdf-line sq' + (i + 1) + (i ? ' dash-q' + (i + 1) : ''), d: ecdfPath(q) }, root);
+    });
+    E.markG = el('g', null, root);
+    E.selG = el('g', null, root);
+
+    bindEcdfEvents(svg);
+    updateEcdf();
+    drawEcdfSelection();
+  }
+
+  function updateEcdf() {
+    if (!E.svg) return;
+    var t = E.thr, x = E.x(t);
+    thrInput.value = t;
+    thrOut.textContent = t.toFixed(1) + '%';
+    document.getElementById('thr-reset').disabled = t === 90;
+
+    QS.forEach(function (q) {
+      E.lines[q].classList.toggle('ecdf-dim', !!(E.iso && E.iso !== q));
+      if (E.legendBtns) {
+        E.legendBtns[q].setAttribute('aria-pressed', E.iso === q ? 'true' : 'false');
+        E.legendBtns[q].classList.toggle('is-dim', !!(E.iso && E.iso !== q));
+      }
+    });
+    // bring the isolated line to the front
+    if (E.iso) E.lines[E.iso].parentNode.insertBefore(E.lines[E.iso], E.markG);
+
+    E.thrG.textContent = '';
+    el('line', { class: 'thr-line', x1: x, x2: x, y1: 0, y2: E.ph }, E.thrG);
+    var tt = el('text', { class: 'thr-title', y: E.ph - 8 }, E.thrG);
+    tt.textContent = '≤ ' + t.toFixed(1) + '%';
+    var titleRight = x < E.pw - 60;
+    tt.setAttribute('x', titleRight ? x + 6 : x - 6);
+    tt.setAttribute('text-anchor', titleRight ? 'start' : 'end');
+
+    // dots on each line + direct labels, pushed apart so they never overlap
+    E.markG.textContent = '';
+    var items = QS.map(function (q, i) {
+      var c = atOrBelow(q, t), n = EV[q].length;
+      return { q: q, i: i, c: c, n: n, share: c / n, dy: E.y(c / n) };
+    });
+    var right = x + 84 < E.pw;
+    var sorted = items.slice().sort(function (a, b) { return a.dy - b.dy || a.i - b.i; });
+    var gap = 16;
+    sorted.forEach(function (o, k) { o.ly = k === 0 ? o.dy : Math.max(o.dy, sorted[k - 1].ly + gap); });
+    var over = sorted[sorted.length - 1].ly - (E.ph - 22);
+    if (over > 0) sorted.forEach(function (o) { o.ly -= over; });
+    var under = 6 - sorted[0].ly;
+    if (under > 0) sorted.forEach(function (o) { o.ly += under; });
+    var lx = right ? x + 20 : x - 20;
+    items.forEach(function (o) {
+      var dim = !!(E.iso && E.iso !== o.q);
+      var g = el('g', dim ? { class: 'ecdf-dim' } : null, E.markG);
+      if (Math.abs(o.ly - o.dy) > 2) {
+        el('line', { class: 'leader', x1: right ? x + 6 : x - 6, y1: o.dy, x2: right ? lx - 3 : lx + 3, y2: o.ly }, g);
+      }
+      el('circle', { class: 'thr-dot sf' + (o.i + 1), cx: x, cy: o.dy, r: 5 }, g);
+      var txt = el('text', { class: 'thr-label', x: lx, y: o.ly, dy: '0.32em', 'text-anchor': right ? 'start' : 'end' }, g);
+      el('tspan', null, txt).textContent = o.q + ' ';
+      el('tspan', { class: 'v' }, txt).textContent = fmtPct(100 * o.share, 0);
+    });
+
+    // plain-language readout (also the text equivalent of the labels)
+    readoutEl.textContent = '';
+    html('span', null, 'At or below ' + t.toFixed(1) + '% retention: ', readoutEl);
+    items.forEach(function (o, k) {
+      html('strong', null, o.q + ' ' + fmtPct(100 * o.share, 0), readoutEl);
+      html('span', 'muted', ' (' + o.c + ' of ' + o.n + ')' + (k < items.length - 1 ? ' · ' : '. '), readoutEl);
+    });
+    var best = items.reduce(function (a, b) { return b.share < a.share ? b : a; });
+    var ties = items.filter(function (o) { return Math.abs(o.share - best.share) < 1e-9; }).length;
+    if (ties === 1 && best.share < 1) {
+      html('span', null, best.q + ' has the largest share of districts retaining more than ' + t.toFixed(1) + '% of teachers (' +
+        fmtPct(100 * (1 - best.share), 0) + ').', readoutEl);
+    }
+  }
+
+  function drawEcdfSelection() {
+    if (!E.selG) return;
+    E.selG.textContent = '';
+    var d = state.selected;
+    if (!d) return;
+    var c = atOrBelow(d.sg, d.ret), x = E.x(d.ret), y = E.y(c / EV[d.sg].length);
+    el('circle', { class: 'sel-ring', cx: x, cy: y, r: 6 }, E.selG);
+    var lab = el('text', { class: 'sel-label' }, E.selG);
+    lab.textContent = truncate(d.name, E.small ? 22 : 40) + ' (' + d.sg + ')';
+    placeSelLabel(lab, x, y, 4, E.pw);
+  }
+
+  function setThreshold(v) {
+    E.thr = clamp(Math.round(v * 2) / 2, 30, 100);
+    updateEcdf();
+  }
+
+  function showEcdfTip(xv, clientX, clientY) {
+    tip.textContent = '';
+    html('div', 'tt-name', 'At or below ' + xv.toFixed(1) + '% retention', tip);
+    var dlEl = html('dl', 'tt-rows', null, tip);
+    QS.forEach(function (q, i) {
+      var c = atOrBelow(q, xv), n = EV[q].length;
+      var dt = html('dt', null, null, dlEl);
+      var key = html('span', 'tt-key', null, dt);
+      key.style.background = 'var(--sal-' + (i + 1) + ')';
+      dt.appendChild(document.createTextNode(q));
+      var dd = html('dd', null, fmtPct(100 * c / n, 0), dlEl);
+      html('span', 'aside', ' (' + c + ' of ' + n + ')', dd);
+    });
+    tip.hidden = false;
+    placeTip(clientX, clientY);
+  }
+
+  function bindEcdfEvents(svg) {
+    function local(e) {
+      var b = svg.getBoundingClientRect();
+      return [(e.clientX - b.left) * (E.w / b.width) - E.m.l, (e.clientY - b.top) * (E.h / b.height) - E.m.t];
+    }
+    function valueAt(px) { return clamp(round(E.x.invert(px), 1), E_X[0], 100); }
+    function inside(p) { return p[0] >= 0 && p[0] <= E.pw && p[1] >= -4 && p[1] <= E.ph + 4; }
+    svg.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      var p = local(e);
+      if (!inside(p)) { E.cross.setAttribute('visibility', 'hidden'); hideTip(); return; }
+      var xv = valueAt(p[0]), cx = E.x(xv);
+      E.cross.setAttribute('x1', cx); E.cross.setAttribute('x2', cx);
+      E.cross.removeAttribute('visibility');
+      showEcdfTip(xv, e.clientX, e.clientY);
+    });
+    svg.addEventListener('pointerleave', function () { E.cross.setAttribute('visibility', 'hidden'); hideTip(); });
+    var down = null;
+    svg.addEventListener('pointerdown', function (e) { down = { x: e.clientX, y: e.clientY }; });
+    svg.addEventListener('pointerup', function (e) {
+      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; }
+      down = null;
+      var p = local(e);
+      if (inside(p)) {
+        setThreshold(valueAt(p[0]));
+        if (e.pointerType !== 'mouse') hideTip();
+      }
+    });
+    svg.addEventListener('keydown', function (e) {
+      var step = e.shiftKey ? 5 : 0.5;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') setThreshold(E.thr + step);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') setThreshold(E.thr - step);
+      else if (e.key === 'Home') setThreshold(30);
+      else if (e.key === 'End') setThreshold(100);
+      else return;
+      e.preventDefault();
+    });
+  }
+
+  thrInput.addEventListener('input', function () { setThreshold(parseFloat(thrInput.value)); });
+  document.getElementById('thr-reset').addEventListener('click', function () { setThreshold(90); });
+  buildEcdfLegend();
+
+  var searchEl = document.getElementById('search');
+  var statusEl = document.getElementById('status');
+
+  function setStatus() {
+    statusEl.textContent = '';
+    var sel = state.selected;
+    if (sel) {
+      html('strong', null, sel.name, statusEl);
+      statusEl.appendChild(document.createTextNode(': average salary ' + fmtUSD(sel.salary) + ' · ' + fmtPct(sel.ret) + ' retained · ' +
+        fmtNum(sel.fte, 1) + ' teacher FTE · salary ' + sel.sg + ' (' + fmtUSD(SG[sel.sg].minSalary) + '–' + fmtUSD(SG[sel.sg].maxSalary) + ')'));
+      var fitted = fitAt(sel.salary), diff = sel.ret - fitted;
+      statusEl.appendChild(document.createTextNode(' · ' + fmtNum(Math.abs(diff), 1) + ' pp ' + (diff >= 0 ? 'above' : 'below') + ' the fitted line'));
+    } else if (state.matches) {
+      var n = Object.keys(state.matches).length;
+      statusEl.textContent = n === 0 ? 'No district names contain “' + state.query + '”.'
+        : n + ' districts contain “' + state.query + '”. Keep typing or pick one from the list.';
+    }
+  }
+
+  function computeMatches(q) {
+    q = q.trim().toLowerCase();
+    if (q.length < 2) return null;
+    var m = {};
+    D.forEach(function (d) { if (d.name.toLowerCase().indexOf(q) !== -1) m[d.id] = true; });
+    return m;
+  }
+
+  function onSearchInput() {
+    var q = searchEl.value;
+    state.query = q.trim();
+    state.matches = computeMatches(q);
+    var exact = null;
+    if (state.query) {
+      var ql = state.query.toLowerCase();
+      exact = D.filter(function (d) { return d.name.toLowerCase() === ql; })[0] || null;
+      if (!exact && state.matches) {
+        var ids = Object.keys(state.matches);
+        if (ids.length === 1) exact = byId[ids[0]];
+      }
+    }
+    state.selected = exact;
+    if (exact) ensureVisible(exact);
+    applyHighlight(); setStatus(); renderTable();
+  }
+
+  function select(d, opts) {
+    state.selected = d;
+    // Keep an active search if the district is part of it; otherwise drop the filter.
+    if (state.matches && !state.matches[d.id]) { state.matches = null; state.query = ''; searchEl.value = ''; }
+    applyHighlight(); setStatus(); renderTable();
+    if (!(opts && opts.fromChart)) ensureVisible(d);
+  }
+
+  function clearSearch() {
+    searchEl.value = '';
+    state.query = ''; state.matches = null; state.selected = null;
+    applyHighlight(); setStatus(); renderTable();
+  }
+
+  searchEl.addEventListener('input', onSearchInput);
+  searchEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') clearSearch(); });
+  document.getElementById('clear').addEventListener('click', function () { clearSearch(); searchEl.focus(); });
+  document.getElementById('zoom-in').addEventListener('click', function () { zoomButton(1.6); });
+  document.getElementById('zoom-out').addEventListener('click', function () { zoomButton(1 / 1.6); });
+  document.getElementById('zoom-reset').addEventListener('click', resetZoom);
+  document.addEventListener('pointerdown', function (e) {
+    if (!scatterEl.contains(e.target) && !boxEl.contains(e.target) && !ecdfEl.contains(e.target)) hideTip();
+  });
+  window.addEventListener('scroll', function () { if (!tip.hidden) hideTip(); }, { passive: true });
+
+  // Table
+  var tableSort = { key: 'name', dir: 1 };
+  var tbody = document.querySelector('#data-table tbody');
+  var tableCard = document.getElementById('table-card');
+  function renderTable() {
+    if (!tableCard.open) return;
+    var rows = D.filter(function (d) { return !state.matches || state.matches[d.id]; });
+    var k = tableSort.key, dir = tableSort.dir;
+    rows.sort(function (a, b) {
+      var va = a[k], vb = b[k];
+      if (typeof va === 'string') return va.localeCompare(vb) * dir || a.name.localeCompare(b.name);
+      return (va - vb) * dir || a.name.localeCompare(b.name);
+    });
+    tbody.textContent = '';
+    var frag = document.createDocumentFragment();
+    rows.forEach(function (d) {
+      var tr = html('tr', state.selected === d ? 'is-selected' : null, null, frag);
+      html('td', 'name', d.name, tr);
+      html('td', 'num', fmtUSD(d.salary), tr);
+      html('td', 'num', fmtPct(d.ret), tr);
+      html('td', 'num', fmtNum(d.fte, 1), tr);
+      html('td', null, d.sg, tr);
+      html('td', null, d.fq, tr);
+      tr.addEventListener('click', function () { select(d); });
+    });
+    tbody.appendChild(frag);
+    document.querySelectorAll('#data-table th button').forEach(function (b) {
+      var th = b.parentNode;
+      if (b.getAttribute('data-sort') === k) th.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending');
+      else th.removeAttribute('aria-sort');
+      b.textContent = b.textContent.replace(/ [▲▼]$/, '') + (b.getAttribute('data-sort') === k ? (dir > 0 ? ' ▲' : ' ▼') : '');
+    });
+  }
+  document.querySelectorAll('#data-table th button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-sort');
+      tableSort = { key: k, dir: tableSort.key === k ? -tableSort.dir : (k === 'name' || k === 'sg' || k === 'fq' ? 1 : -1) };
+      renderTable();
+    });
+  });
+  tableCard.addEventListener('toggle', renderTable);
+
+  // ---------------------------------------------------------------------------
+  // Layout
+  // ---------------------------------------------------------------------------
+  var lastW = { s: 0, b: 0, e: 0 };
+  function layout() {
+    var sw = scatterEl.clientWidth, bw = boxEl.clientWidth;
+    if (sw !== lastW.s) { lastW.s = sw; buildScatter(); }
+    if (bw !== lastW.b) { lastW.b = bw; buildBoxplot(); }
+    var ew = ecdfEl.clientWidth;
+    if (ew !== lastW.e) { lastW.e = ew; buildEcdf(); }
+  }
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { window.requestAnimationFrame(layout); });
+    ro.observe(scatterEl); ro.observe(boxEl); ro.observe(ecdfEl);
+  } else {
+    window.addEventListener('resize', layout);
+  }
+  layout();
+})();
+</script>
+</body>
+</html>
